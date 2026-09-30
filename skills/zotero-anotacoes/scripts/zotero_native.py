@@ -186,25 +186,40 @@ def _bridge(method: str, path: str, token: str, body=None, timeout=15) -> dict:
             return json.loads(r.read().decode())
     except urllib.error.HTTPError as e:
         detail = e.read().decode(errors="replace")[:300]
+        if e.code == 403:
+            raise ApiError("extensão recusou o token; rode `zotobs bridge-token` (o arquivo deve ser o mesmo que a extensão lê)")
+        if e.code == 404 and "não encontrado" not in detail:
+            raise ApiError("a extensão instalada é antiga (falta este recurso); atualize o .xpi")
         raise ApiError(f"extensão respondeu {e.code}: {detail}")
     except (urllib.error.URLError, TimeoutError, OSError) as e:
-        raise ApiError(f"extensão inacessível: {e}")
+        raise ApiError(f"extensão inacessível (Zotero fechado ou sem a extensão instalada?): {e}")
 
 
 def bridge_ping(token: str) -> dict:
     return _bridge("GET", "/zotobs/ping", token, timeout=2)
 
 
+BRIDGE_BATCH = 200  # a extensão aceita no máx. 500 itens por requisição
+
+
+def _batched(token: str, path: str, library_id: int, att_key: str, items: list[dict], keys: tuple[str, ...]) -> dict:
+    tot: dict[str, list] = {k: [] for k in keys}
+    for n in range(0, max(len(items), 1), BRIDGE_BATCH):
+        res = _bridge("POST", path, token, {"library": library_id, "attachment": att_key,
+                                            "items": items[n:n + BRIDGE_BATCH]}, timeout=60)
+        for k in keys:
+            tot[k] += res.get(k, [])
+    return tot
+
+
 def post_bridge(token: str, library_id: int, att_key: str, items: list[dict]) -> dict:
     """Mesmo retorno de post_annotations: {'criadas','puladas','falhas'}."""
-    return _bridge("POST", "/zotobs/import", token,
-                   {"library": library_id, "attachment": att_key, "items": items}, timeout=60)
+    return _batched(token, "/zotobs/import", library_id, att_key, items, ("criadas", "puladas", "falhas"))
 
 
 def update_bridge(token: str, library_id: int, att_key: str, items: list[dict]) -> dict:
     """items: [{'key', 'comment'?, 'tags'?}] -> {'atualizadas','inalteradas','falhas'}."""
-    return _bridge("POST", "/zotobs/update", token,
-                   {"library": library_id, "attachment": att_key, "items": items}, timeout=60)
+    return _batched(token, "/zotobs/update", library_id, att_key, items, ("atualizadas", "inalteradas", "falhas"))
 
 
 # ------------------------------------------------------------- snippet JS

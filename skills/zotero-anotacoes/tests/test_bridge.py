@@ -66,7 +66,7 @@ def test_ping_e_import(bridge):
 
 
 def test_token_errado(bridge):
-    with pytest.raises(zn.ApiError, match="403"):
+    with pytest.raises(zn.ApiError, match="recusou o token"):
         zn.bridge_ping("errado")
 
 
@@ -89,6 +89,23 @@ def test_update_bridge(bridge, monkeypatch):
         return {"atualizadas": ["AAAAAAAA"], "inalteradas": [], "falhas": []}
     monkeypatch.setattr(zn, "_bridge", fake)
     assert zn.update_bridge(TOKEN, 1, "ATT", [{"key": "AAAAAAAA", "comment": "x"}])["atualizadas"] == ["AAAAAAAA"]
+
+
+def test_envio_em_lotes(monkeypatch):
+    sizes = []
+
+    def fake(method, path, token, body=None, timeout=15):
+        sizes.append(len(body["items"]))
+        return {"criadas": [i["key"] for i in body["items"]], "puladas": [], "falhas": []}
+    monkeypatch.setattr(zn, "_bridge", fake)
+    items = [{"key": f"K{n:07d}"} for n in range(450)]
+    res = zn.post_bridge(TOKEN, 1, "ATT", items)
+    assert sizes == [200, 200, 50] and len(res["criadas"]) == 450
+
+
+def test_mensagem_token_recusado(bridge):
+    with pytest.raises(zn.ApiError, match="bridge-token"):
+        zn.post_bridge("errado", 1, "ATT", [{"key": "AAAAAAAA"}])
 
 
 def test_parse_export_md():
