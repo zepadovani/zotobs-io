@@ -163,8 +163,8 @@ function zotobsAddMenu(win) {
     return mi;
   };
   menu.append(sep,
-    mk("zotobs-menu-default", "Exportar anotações (pasta padrão)", "default"),
-    mk("zotobs-menu-folder", "Exportar anotações para…", "folder"));
+    mk("zotobs-menu-default", "zotobs-io: Exportar anotações (pasta padrão)", "default"),
+    mk("zotobs-menu-folder", "zotobs-io: Exportar anotações para…", "folder"));
 }
 
 function zotobsRemoveMenu(win) {
@@ -180,7 +180,7 @@ async function startup({ id, version, rootURI }) {
     pluginID: id,
     src: rootURI + "prefs.xhtml",
     scripts: [rootURI + "prefs-pane.js"],
-    label: "zotobs",
+    label: "zotobs-io",
   });
   for (const w of Zotero.getMainWindows()) zotobsAddMenu(w);
   ZotobsBridge.version = version;

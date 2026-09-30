@@ -32,16 +32,16 @@ Só comentário e tags; só anotações do anexo indicado. Requer a extensão �
 
 ## Exportar anotações para Markdown (v0.1.0)
 
-Botão direito em itens (ou PDFs) → **Exportar anotações (pasta padrão)** ou
-**Exportar anotações para…**. Mesmo formato do `zotobs extract` (o `sync-md`
+Botão direito em itens (ou PDFs) → **zotobs-io: Exportar anotações (pasta padrão)** ou
+**zotobs-io: Exportar anotações para…**. Mesmo formato do `zotobs extract` (o `sync-md`
 funciona sobre ele).
 
-- *Pasta padrão* (Configurações → zotobs): cria
+- *Pasta padrão* (Configurações → zotobs-io): cria
   `<pasta>/<nome do PDF>/<nome do PDF>.md` (+ `<nome do PDF>_img/`). O nome é o do
   arquivo já renomeado pelo Zotero/ZotMoov, sem a extensão.
 - *Para…*: escolhe uma pasta e grava direto nela só `<nome>.md` e `<nome>_img/`.
 - Se o `.md` já existe, pergunta: **Mesclar** (mantém o que você escreveu entre as anotações; ver docs/OBSIDIAN.md), **Sobrescrever** ou Cancelar. Mesclar exige o CLI.
-- Com o CLI `zotobs` disponível (Configurações → zotobs; padrão `~/.local/bin/zotobs`
+- Com o CLI `zotobs` disponível (Configurações → zotobs-io; padrão `~/.local/bin/zotobs`
   ou `~/repositorios/zotobs-io/bin/zotobs`), o plugin o chama: saem também os recortes
   de desenhos/áreas (com os rabiscos por cima) e o texto coberto por desenhos. Sem
   o CLI, o plugin usa um exportador próprio que deixa os desenhos só com o comentário.
