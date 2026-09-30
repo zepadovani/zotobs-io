@@ -389,10 +389,10 @@ def md_block(a: dict, att, imgdir, saida) -> list[str]:
         link = "↗"
     col = f"color:{hexv};" if hexv else ""
     if tipo == "highlight":
-        head = f'<span style="background:{hexv}66;">“{_esc(a["texto"])}”</span>' if hexv else f"“{_esc(a['texto'])}”"
+        head = f'<span style="background:{hexv}66;"><i>“{_esc(a["texto"])}”</i></span>' if hexv else f"<i>“{_esc(a['texto'])}”</i>"
     elif tipo == "underline":
         st = f"text-decoration:underline;text-decoration-color:{hexv};text-decoration-thickness:2px;" if hexv else "text-decoration:underline;"
-        head = f'<span style="{st}">“{_esc(a["texto"])}”</span>'
+        head = f'<span style="{st}"><i>“{_esc(a["texto"])}”</i></span>'
     else:
         rot = {"note": "nota", "text": "texto", "image": "imagem", "ink": "desenho"}.get(tipo, tipo)
         head = f'<span style="{col}font-weight:bold;">{rot}</span>'
