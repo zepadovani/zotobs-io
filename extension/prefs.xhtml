@@ -11,6 +11,10 @@
                   style="flex: 1" placeholder="/caminho/para/notas-de-leitura"/>
       <button id="zotobs-choose-dir" label="Escolher…"/>
     </hbox>
+    <checkbox id="zotobs-usecli" preference="extensions.zotobs.use_cli"
+              label="Usar o CLI zotobs na exportação (desenhos sobre imagens, texto coberto, recortes)"/>
+    <html:input id="zotobs-cli-path" type="text" preference="extensions.zotobs.cli_path"
+                placeholder="caminho do zotobs (vazio = ~/.local/bin/zotobs ou ~/repositorios/zotobs-io/bin/zotobs)"/>
     <checkbox id="zotobs-images" preference="extensions.zotobs.export_images"
               label="Salvar imagens das anotações de área (pasta &lt;nome&gt;_img)"/>
   </groupbox>

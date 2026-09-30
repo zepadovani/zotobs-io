@@ -68,6 +68,28 @@
       return L.join("\n").replace(/\s+$/, "") + "\n";
     },
 
+    /** CLI zotobs: caminho configurado, ou ~/.local/bin/zotobs, ou o clone local do projeto. */
+    async findCli() {
+      if (!pref("use_cli")) return null;
+      const home = Services.dirsvc.get("Home", Ci.nsIFile).path;
+      const cands = [pref("cli_path"), PathUtils.join(home, ".local", "bin", "zotobs"),
+        PathUtils.join(home, "repositorios", "zotobs-io", "bin", "zotobs")];
+      for (const c of cands) if (c && (await IOUtils.exists(c))) return c;
+      return null;
+    },
+
+    /** Exportação completa pelo CLI (desenhos sobre imagens, texto coberto, recortes). */
+    async exportViaCli(cli, file, mdPath, imgDir) {
+      const log = PathUtils.join(Services.dirsvc.get("TmpD", Ci.nsIFile).path, "zotobs-export.log");
+      const t0 = Date.now() - 1000;
+      try {
+        // login shell para herdar o PATH do usuário (o CLI usa `uv`); $0=cli, $1=pdf, $2=md, $3=imagens
+        await Zotero.Utilities.Internal.exec("/bin/zsh",
+          ["-lc", '"$0" extract "$1" -o "$2" --imagens "$3" >"$4" 2>&1', cli, file, mdPath, imgDir, log]);
+      } catch (e) { Zotero.debug("[zotobs-bridge] CLI: " + e + " (log em " + log + ")"); return false; }
+      return (await IOUtils.exists(mdPath)) && (await IOUtils.stat(mdPath)).lastModified >= t0;
+    },
+
     /** Exporta um anexo. outDir = pasta final onde vão <nome>.md e <nome>_img/. */
     async exportOne(att, outDir, win) {
       const parent = att.parentItem;
@@ -82,6 +104,10 @@
           !Services.prompt.confirm(win, "zotobs", `“${base}.md” já existe em\n${outDir}\n\nSobrescrever? (edições feitas na nota serão perdidas)`))
         return { skipped: "já existe (mantido)" };
       await IOUtils.makeDirectory(outDir, { ignoreExisting: true, createAncestors: true });
+
+      const cli = await Z.findCli();
+      if (cli && file && (await Z.exportViaCli(cli, file, mdPath, PathUtils.join(outDir, base + "_img"))))
+        return { path: mdPath, n: anns.length, via: "CLI" };
 
       const imgs = new Map();
       if (pref("export_images")) {
@@ -123,7 +149,7 @@
             out = PathUtils.join(root, base);
           }
           const r = await Z.exportOne(att, out, win);
-          if (r.path) { ok++; pw.addDescription(`${r.n} anotações → ${r.path}`); }
+          if (r.path) { ok++; pw.addDescription(`${r.n} anotações${r.via ? " (via CLI)" : " (sem desenhos/texto coberto: CLI não encontrado)"} → ${r.path}`); }
           else pw.addDescription(`${att.attachmentFilename}: ${r.skipped}`);
         } catch (e) {
           Zotero.logError(e);

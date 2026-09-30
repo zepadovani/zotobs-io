@@ -41,8 +41,10 @@ funciona sobre ele).
   arquivo já renomeado pelo Zotero/ZotMoov, sem a extensão.
 - *Para…*: escolhe uma pasta e grava direto nela só `<nome>.md` e `<nome>_img/`.
 - Se o `.md` já existe, pergunta antes de sobrescrever (edições no Obsidian).
-- Limite: desenhos (`ink`) saem só com comentário; o texto coberto e o recorte
-  do desenho continuam exclusivos do `zotobs extract`. Imagens de área vêm do cache do Zotero.
+- Com o CLI `zotobs` disponível (Configurações → zotobs; padrão `~/.local/bin/zotobs`
+  ou `~/repositorios/zotobs-io/bin/zotobs`), o plugin o chama: saem também os recortes
+  de desenhos/áreas (com os rabiscos por cima) e o texto coberto por desenhos. Sem
+  o CLI, o plugin usa um exportador próprio que deixa os desenhos só com o comentário.
 
 ## Segurança
 
