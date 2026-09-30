@@ -35,17 +35,17 @@ references from inside Obsidian**.
 
 zotobs-io solves a different problem, and the two complement each other:
 
-| | obsidian-zotero-integration | zotobs-io |
-|---|---|---|
-| Runs in | Obsidian | **Zotero** (plugin) and the **terminal** (CLI/agents); Obsidian only needs to open `.md` files |
-| Focus | citations, bibliographies, reading notes, importing annotations into Obsidian | the **life cycle of annotations** between Zotero and Markdown |
-| Direction | Zotero → Obsidian (per the project's README) | Zotero → Markdown **and** Markdown → Zotero |
-| Writes to Zotero | not described | yes: creates native annotations, edits comments/tags of existing ones |
-| Re-importing over an edited note | — | **merge**: refreshes the blocks, keeps what you wrote between them |
-| Ink and image areas | — | page crop with the drawing on top, plus the text under the drawing |
-| AI automation | — | deterministic CLI + agent *skill* |
-| Requires Better BibTeX | yes (per the project's README) | no |
-| Works without Obsidian | no | yes (any Markdown editor) |
+|                                  | obsidian-zotero-integration                                                   | zotobs-io                                                                                      |
+| -------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Runs in                          | Obsidian                                                                      | **Zotero** (plugin) and the **terminal** (CLI/agents); Obsidian only needs to open `.md` files |
+| Focus                            | citations, bibliographies, reading notes, importing annotations into Obsidian | the **life cycle of annotations** between Zotero and Markdown                                  |
+| Direction                        | Zotero → Obsidian (per the project's README)                                  | Zotero → Markdown **and** Markdown → Zotero                                                    |
+| Writes to Zotero                 | not described                                                                 | yes: creates native annotations, edits comments/tags of existing ones                          |
+| Re-importing over an edited note | —                                                                             | **merge**: refreshes the blocks, keeps what you wrote between them                             |
+| Ink and image areas              | —                                                                             | page crop with the drawing on top, plus the text under the drawing                             |
+| AI automation                    | —                                                                             | deterministic CLI + agent *skill*                                                              |
+| Requires Better BibTeX           | yes (per the project's README)                                                | no                                                                                             |
+| Works without Obsidian           | no                                                                            | yes (any Markdown editor)                                                                      |
 
 In short: use obsidian-zotero-integration to **cite and import references**;
 use zotobs-io when **annotations are the working material** — to review them,
@@ -54,10 +54,10 @@ agent. Nothing stops you from using both.
 
 ## Platform status
 
-| System | Status |
-|---|---|
-| **macOS** | ✅ developed and tested (Zotero 10.0.4) |
-| **Linux** | ⚠️ **untested** — written to work (paths, `bash`); reports welcome |
+| System      | Status                                                                                         |
+| ----------- | ---------------------------------------------------------------------------------------------- |
+| **macOS**   | ✅ developed and tested (Zotero 10.0.4)                                                         |
+| **Linux**   | ⚠️ **untested** — written to work (paths, `bash`); reports welcome                              |
 | **Windows** | ⚠️ **untested** — `install.ps1` and `zotobs.cmd` exist but have never been run; reports welcome |
 
 Requires Zotero 7 or newer. How to report a Linux/Windows test:
@@ -102,28 +102,28 @@ has a deterministic key.
 
 ## Feature status
 
-| Feature | Status |
-|---|---|
-| extract (database + PDF, md/json, images, ink + covered text) | ✅ tested on real PDFs |
-| Plugin: context menu export, PDF-reader buttons and menu, settings pane | ✅ tested on Zotero 10.0.4 (macOS) |
-| Re-export merging with the edited note | ✅ tested (CLI and plugin) |
-| add as native annotations via plugin / Web API / JS snippet | ✅ tested (Zotero open and closed) |
-| Edit comment/tags of existing annotations (`sync-md`) | ✅ tested on Zotero 10.0.4 |
-| add embedded in the PDF, `embed`, `strip` | ✅ tested |
-| Plugin auto-update (`updates.json`) | 🧪 ready; needs a published release ([docs/RELEASE.md](docs/RELEASE.md)) |
+| Feature                                                                 | Status                                                                  |
+| ----------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| extract (database + PDF, md/json, images, ink + covered text)           | ✅ tested on real PDFs                                                   |
+| Plugin: context menu export, PDF-reader buttons and menu, settings pane | ✅ tested on Zotero 10.0.4 (macOS)                                       |
+| Re-export merging with the edited note                                  | ✅ tested (CLI and plugin)                                               |
+| add as native annotations via plugin / Web API / JS snippet             | ✅ tested (Zotero open and closed)                                       |
+| Edit comment/tags of existing annotations (`sync-md`)                   | ✅ tested on Zotero 10.0.4                                               |
+| add embedded in the PDF, `embed`, `strip`                               | ✅ tested                                                                |
+| Plugin auto-update (`updates.json`)                                     | 🧪 ready; needs a published release ([docs/RELEASE.md](docs/RELEASE.md)) |
 
 ## Documentation (Portuguese)
 
-| I want to… | Read |
-|---|---|
-| **Install** (incl. installing `uv`; macOS/Linux/Windows) | [docs/INSTALL.md](docs/INSTALL.md) |
-| Use the plugin and the Obsidian workflow | [docs/OBSIDIAN.md](docs/OBSIDIAN.md) · [extension/README.md](extension/README.md) |
-| Recipes for each terminal command | [docs/USAGE.md](docs/USAGE.md) |
-| Create a Zotero API key (optional) | [docs/API-KEY.md](docs/API-KEY.md) |
-| Fix an error | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) |
-| Data model and design decisions | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
-| Publish a new plugin version | [docs/RELEASE.md](docs/RELEASE.md) |
-| Instructions agents read | [skills/zotero-anotacoes/SKILL.md](skills/zotero-anotacoes/SKILL.md) |
+| I want to…                                               | Read                                                                              |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| **Install** (incl. installing `uv`; macOS/Linux/Windows) | [docs/INSTALL.md](docs/INSTALL.md)                                                |
+| Use the plugin and the Obsidian workflow                 | [docs/OBSIDIAN.md](docs/OBSIDIAN.md) · [extension/README.md](extension/README.md) |
+| Recipes for each terminal command                        | [docs/USAGE.md](docs/USAGE.md)                                                    |
+| Create a Zotero API key (optional)                       | [docs/API-KEY.md](docs/API-KEY.md)                                                |
+| Fix an error                                             | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)                                |
+| Data model and design decisions                          | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)                                      |
+| Publish a new plugin version                             | [docs/RELEASE.md](docs/RELEASE.md)                                                |
+| Instructions agents read                                 | [skills/zotero-anotacoes/SKILL.md](skills/zotero-anotacoes/SKILL.md)              |
 
 ## License
 
@@ -147,4 +147,4 @@ make test
 
 ## Author
 
-José Henrique Padovani — <zepadovani@gmail.com>
+José Henrique Padovani
