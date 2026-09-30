@@ -85,9 +85,11 @@
       try {
         // login shell para herdar o PATH do usuário (o CLI usa `uv`); $0=cli, $1=pdf, $2=md, $3=imagens
         await Zotero.Utilities.Internal.exec("/bin/zsh",
-          ["-lc", '"$0" extract "$1" -o "$2" --imagens "$3" >"$4" 2>&1', cli, file, mdPath, imgDir, log]);
-      } catch (e) { Zotero.debug("[zotobs-bridge] CLI: " + e + " (log em " + log + ")"); return false; }
-      return (await IOUtils.exists(mdPath)) && (await IOUtils.stat(mdPath)).lastModified >= t0;
+          ["-lc", 'export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"; "$0" extract "$1" -o "$2" --imagens "$3" >"$4" 2>&1', cli, file, mdPath, imgDir, log]);
+      } catch (e) { Zotero.debug("[zotobs-bridge] CLI: " + e + " (log em " + log + ")"); }
+      if ((await IOUtils.exists(mdPath)) && (await IOUtils.stat(mdPath)).lastModified >= t0) return "";
+      try { return (await IOUtils.readUTF8(log)).trim().split("\n").slice(-2).join(" | "); }
+      catch (e) { return "falha desconhecida"; }
     },
 
     /** Exporta um anexo. outDir = pasta final onde vão <nome>.md e <nome>_img/. */
@@ -106,8 +108,11 @@
       await IOUtils.makeDirectory(outDir, { ignoreExisting: true, createAncestors: true });
 
       const cli = await Z.findCli();
-      if (cli && file && (await Z.exportViaCli(cli, file, mdPath, PathUtils.join(outDir, base + "_img"))))
-        return { path: mdPath, n: anns.length, via: "CLI" };
+      let cliErr = null;
+      if (cli && file) {
+        cliErr = await Z.exportViaCli(cli, file, mdPath, PathUtils.join(outDir, base + "_img"));
+        if (cliErr === "") return { path: mdPath, n: anns.length, via: "CLI" };
+      }
 
       const imgs = new Map();
       if (pref("export_images")) {
@@ -126,7 +131,7 @@
         }
       }
       await IOUtils.writeUTF8(mdPath, Z.buildMarkdown(att, parent, anns, imgs, pdfName));
-      return { path: mdPath, n: anns.length };
+      return { path: mdPath, n: anns.length, cliErr };
     },
 
     /** mode "default": <pasta padrão>/<nome do PDF>/ ; mode "folder": <escolhida>/ direto. */
@@ -149,7 +154,7 @@
             out = PathUtils.join(root, base);
           }
           const r = await Z.exportOne(att, out, win);
-          if (r.path) { ok++; pw.addDescription(`${r.n} anotações${r.via ? " (via CLI)" : " (sem desenhos/texto coberto: CLI não encontrado)"} → ${r.path}`); }
+          if (r.path) { ok++; pw.addDescription(`${r.n} anotações${r.via ? " (via CLI)" : " (sem desenhos/texto coberto: " + (r.cliErr ? "CLI falhou: " + r.cliErr : "CLI não encontrado") + ")"} → ${r.path}`); }
           else pw.addDescription(`${att.attachmentFilename}: ${r.skipped}`);
         } catch (e) {
           Zotero.logError(e);
