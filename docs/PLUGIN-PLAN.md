@@ -9,9 +9,12 @@
 > errado e com `Origin`; 400 corpo inválido; 404 anexo inexistente; 413 >500 itens; falha
 > isolada por item; duplicada pulada; update fora do anexo recusado; update sem mudança =
 > inalterada) e fallback do CLI com Zotero fechado/token errado (extensão → API → snippet,
-> mensagens acionáveis). O CLI envia em lotes de 200. **M3** verificado só em parte: o
-> `/update` com comentário igual foi exercitado ao vivo; a edição efetiva de comentário
-> (`sync-md` sem `--dry-run`) ainda não.
+> mensagens acionáveis; testado também com o Zotero realmente fechado: extensão falha →
+> Web API cria, reenvio não duplica). O CLI envia em lotes de 200.
+> **M3 verificado ao vivo:** `sync-md` alterou comentários de uma nota e de um texto livre
+> (inclusive comentário com parágrafo em branco); o reenvio deu “nada a sincronizar”; a
+> nota original restaurou os valores. Cor e leitura via `GET /annotations` ficaram fora
+> (a leitura é feita pelo banco).
 > Decisões: pareamento por arquivo `~/.config/zotero-anot/bridge_token` (lido
 > a cada requisição; sem preferência do Zotero); a extensão é tentada **antes**
 > da Web API (é local e imediata).
