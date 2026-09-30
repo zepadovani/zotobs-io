@@ -36,6 +36,10 @@ Botão direito em itens (ou PDFs) → **zotobs-io: Exportar anotações (pasta p
 **zotobs-io: Exportar anotações para…**. Mesmo formato do `zotobs extract` (o `sync-md`
 funciona sobre ele).
 
+**No leitor de PDF:** botão direito no documento (mesmos dois comandos) ou o ícone de
+download na barra de ferramentas (exporta para a pasta padrão). Abas do leitor já abertas
+precisam ser fechadas e reabertas depois de instalar/atualizar.
+
 - *Pasta padrão* (Configurações → zotobs-io): cria
   `<pasta>/<nome do PDF>/<nome do PDF>.md` (+ `<nome do PDF>_img/`). O nome é o do
   arquivo já renomeado pelo Zotero/ZotMoov, sem a extensão.

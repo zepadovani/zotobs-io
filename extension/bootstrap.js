@@ -147,7 +147,38 @@ var ZotobsBridge = {
 
 function install() {}
 function uninstall() {}
-var zotobsRootURI = null, zotobsPaneID = null;
+var zotobsRootURI = null, zotobsPaneID = null, zotobsReaderHandlers = [];
+
+// Leitor de PDF: botão direito no documento + ícone na barra de ferramentas.
+function zotobsRegisterReader(pluginID) {
+  const run = (reader, mode) => {
+    const item = Zotero.Items.get(reader.itemID);
+    const win = reader._window || Zotero.getMainWindow();
+    if (item) Zotero.Zotobs.run([item], mode, win);
+  };
+  const add = (type, handler) => {
+    Zotero.Reader.registerEventListener(type, handler, pluginID);
+    zotobsReaderHandlers.push([type, handler]);
+  };
+  add("createViewContextMenu", ({ reader, append }) => {
+    append({ label: "zotobs-io: Exportar anotações (pasta padrão)", onCommand: () => run(reader, "default") },
+           { label: "zotobs-io: Exportar anotações para…", onCommand: () => run(reader, "folder") });
+  });
+  add("renderToolbar", ({ reader, doc, append }) => {
+    const b = doc.createElement("button");
+    b.className = "toolbar-button";
+    b.title = "zotobs-io: exportar anotações para Markdown (pasta padrão)";
+    b.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" ' +
+      'stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8M4.5 6.8 8 10.3l3.5-3.5M3 13h10"/></svg>';
+    b.addEventListener("click", () => run(reader, "default"));
+    append(b);
+  });
+}
+
+function zotobsUnregisterReader() {
+  for (const [type, h] of zotobsReaderHandlers) Zotero.Reader.unregisterEventListener(type, h);
+  zotobsReaderHandlers = [];
+}
 
 function zotobsAddMenu(win) {
   const doc = win.document, menu = doc.getElementById("zotero-itemmenu");
@@ -183,12 +214,14 @@ async function startup({ id, version, rootURI }) {
     label: "zotobs-io",
   });
   for (const w of Zotero.getMainWindows()) zotobsAddMenu(w);
+  zotobsRegisterReader(id);
   ZotobsBridge.version = version;
   ZotobsBridge.register();
   ZotobsBridge.log("iniciado v" + version);
 }
 function shutdown() {
   ZotobsBridge.unregister();
+  zotobsUnregisterReader();
   for (const w of Zotero.getMainWindows()) zotobsRemoveMenu(w);
   if (zotobsPaneID) Zotero.PreferencePanes.unregister?.(zotobsPaneID);
   delete Zotero.Zotobs;
