@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import hashlib
+import html
 import json
 import os
 import re
@@ -51,8 +52,6 @@ NAME2HEX = {"yellow": "#ffd400", "red": "#ff6666", "green": "#5fb236",
             "blue": "#2ea8e5", "purple": "#a28ae5", "magenta": "#e56eee",
             "orange": "#f19837", "gray": "#aaaaaa", "grey": "#aaaaaa"}
 NAME2HEX.update({v: k for k, v in ZCOLORS.items()})  # nomes em português
-EMOJI = {"amarelo": "🟡", "vermelho": "🔴", "verde": "🟢", "azul": "🔵",
-         "roxo": "🟣", "magenta": "🟣", "laranja": "🟠", "cinza": "⚪"}
 AUTHOR_DEFAULT = "agente"
 
 
@@ -373,6 +372,49 @@ def cmd_extract(args):
         print(text)
 
 
+def _esc(t: str) -> str:
+    return html.escape(" ".join((t or "").split()), quote=False)
+
+
+def md_block(a: dict, att, imgdir, saida) -> list[str]:
+    """Um bloco `> ...` por anotação: link + trecho/rótulo colorido (HTML) na 1ª linha,
+    comentário logo abaixo. Formato lido de volta por `parse_export_md` (sync-md)."""
+    hexv = (a["cor"] or "").lower()
+    tipo = a["tipo"]
+    if att and a["origem"] == "zotero":
+        link = f"[↗](zotero://open-pdf/library/items/{att['key']}?page={a['pagina']}&annotation={a['key']})"
+    elif att:
+        link = f"[↗](zotero://open-pdf/library/items/{att['key']}?page={a['pagina']})"
+    else:
+        link = "↗"
+    col = f"color:{hexv};" if hexv else ""
+    if tipo == "highlight":
+        head = f'<span style="background:{hexv}66;">“{_esc(a["texto"])}”</span>' if hexv else f"“{_esc(a['texto'])}”"
+    elif tipo == "underline":
+        st = f"text-decoration:underline;text-decoration-color:{hexv};text-decoration-thickness:2px;" if hexv else "text-decoration:underline;"
+        head = f'<span style="{st}">“{_esc(a["texto"])}”</span>'
+    else:
+        rot = {"note": "nota", "text": "texto", "image": "imagem", "ink": "desenho"}.get(tipo, tipo)
+        head = f'<span style="{col}font-weight:bold;">{rot}</span>'
+        if tipo == "ink" and a.get("texto_coberto") and a["texto"]:
+            head += f' <i>“{_esc(a["texto"])}”</i>'  # trecho do texto sob o desenho
+    if a["tags"]:
+        head += " <small>" + " ".join("#" + t.replace(" ", "_") for t in a["tags"]) + "</small>"
+    out = [f"> {link} {head}  "]
+    if a.get("imagem") and imgdir:
+        try:
+            rel = os.path.relpath(imgdir / a["imagem"], Path(saida).expanduser().parent) if saida else str(imgdir / a["imagem"])
+        except ValueError:
+            rel = str(imgdir / a["imagem"])
+        out.append(f"> ![]({rel.replace(' ', '%20')})")
+    if tipo in ("note", "text") and not a["comentario"] and a["texto"]:
+        out += ["> " + ln if ln else ">" for ln in a["texto"].splitlines()]
+    for ln in (a["comentario"] or "").splitlines():
+        out.append("> " + ln if ln else ">")
+    out.append("")
+    return out
+
+
 def to_markdown(pdf: Path, meta, att, anns, imgdir, saida) -> str:
     meta = meta or {}
     title = meta.get("title") or pdf.stem
@@ -394,33 +436,7 @@ def to_markdown(pdf: Path, meta, att, anns, imgdir, saida) -> str:
             page = a["pagina"]
             lab = f" (impresso: {a['rotulo']})" if a["rotulo"] and str(a["rotulo"]) != str(page) else ""
             L += [f"## p. {page}{lab}", ""]
-        cn = color_name(a["cor"])
-        dot = EMOJI.get(cn, "▫️")
-        link = ""
-        if att and a["origem"] == "zotero":
-            link = f" [↗](zotero://open-pdf/library/items/{att['key']}?page={a['pagina']}&annotation={a['key']})"
-        elif att:
-            link = f" [↗](zotero://open-pdf/library/items/{att['key']}?page={a['pagina']})"
-        rot = {"highlight": "destaque", "underline": "sublinhado", "note": "nota",
-               "text": "texto livre", "image": "imagem", "ink": "desenho"}.get(a["tipo"], a["tipo"])
-        if a.get("texto_coberto"):
-            rot += " (texto coberto)"
-        head = f"{dot} **{rot}**" + (f" · {cn}" if cn and cn not in EMOJI else f" · {cn}" if cn else "")
-        if a["tags"]:
-            head += " · " + " ".join("#" + t.replace(" ", "_") for t in a["tags"])
-        L.append(head + link)
-        if a["texto"]:
-            L += ["> " + ln for ln in a["texto"].splitlines()]
-        if a.get("imagem") and imgdir:
-            try:
-                rel = os.path.relpath(imgdir / a["imagem"], Path(saida).expanduser().parent) if saida else str(imgdir / a["imagem"])
-            except ValueError:
-                rel = str(imgdir / a["imagem"])
-            L.append(f"![]({rel.replace(' ', '%20')})")
-        if a["comentario"]:
-            L.append("" if a["texto"] else "")
-            L.append(f"**{'Comentário' if a['tipo'] in ('highlight', 'underline', 'image', 'ink') else 'Conteúdo'}:** {a['comentario']}")
-        L.append("")
+        L += md_block(a, att, imgdir, saida)
     return "\n".join(L).rstrip() + "\n"
 
 
@@ -828,32 +844,33 @@ def cmd_add(args):
         sys.exit(1)
 
 
-_HEAD = re.compile(r"^\S+ \*\*[^*]+\*\*.*\[↗\]\(zotero://open-pdf/[^)]*annotation=([A-Z0-9]{8})\)\s*$")
-_CMT = re.compile(r"^\*\*(Comentário|Conteúdo):\*\* ?(.*)$")
+_HEAD = re.compile(r"^> \[↗\]\(zotero://open-pdf/[^)]*annotation=([A-Z0-9]{8})\)(.*)$")
+_SMALL = re.compile(r"<small>(.*?)</small>")
 
 
 def parse_export_md(text: str) -> dict[str, dict]:
-    """Nota exportada por `extract` -> {chave: {'comment': str, 'tags': set[str]}}."""
+    """Nota exportada por `extract` -> {chave: {'comment': str, 'tags': set[str]}}.
+    Comentário = linhas `> ...` após a 1ª linha do bloco (exceto imagens `> ![`)."""
     out: dict[str, dict] = {}
     cur = None
-    lines = text.splitlines()
-    for ln in lines + ["## fim"]:
+    for ln in text.splitlines() + [""]:
         m = _HEAD.match(ln)
-        if m or ln.startswith("## "):
+        if m:
             if cur is not None:
-                cur["comment"] = "\n".join(cur.pop("_c")).strip("\n") if "_c" in cur else ""
-            cur = None
-            if m:
-                tags = {t[1:] for t in ln.split("[↗]")[0].split() if t.startswith("#")}
-                cur = out.setdefault(m.group(1), {"comment": "", "tags": tags})
+                cur["comment"] = "\n".join(cur.pop("_c")).strip("\n")
+            tags = set()
+            for g in _SMALL.findall(m.group(2)):
+                tags |= {t[1:] for t in g.split() if t.startswith("#")}
+            cur = out.setdefault(m.group(1), {"comment": "", "tags": tags, "_c": []})
             continue
         if cur is None:
             continue
-        c = _CMT.match(ln)
-        if c and "_c" not in cur:
-            cur["_c"] = [c.group(2)]
-        elif "_c" in cur:
-            cur["_c"].append(ln)
+        if ln.startswith(">"):
+            if not ln.startswith("> !["):
+                cur["_c"].append(ln[2:] if ln.startswith("> ") else "")
+        else:
+            cur["comment"] = "\n".join(cur.pop("_c")).strip("\n")
+            cur = None
     return out
 
 

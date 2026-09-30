@@ -95,20 +95,18 @@ def test_parse_export_md():
     import zotero_anot as za
     md = """## p. 9 (impresso: ix)
 
-🟡 **destaque** · amarelo [↗](zotero://open-pdf/library/items/87BBKH34?page=9&annotation=2REKQJJZ)
-> trecho
+> [↗](zotero://open-pdf/library/items/87BBKH34?page=9&annotation=2REKQJJZ) <span style="background:#ffd40066;">“trecho”</span>  
+> linha 1
+>
+> linha 3
 
-**Comentário:** linha 1
-
-linha 3
-
-🔵 **destaque** · azul · #agente #a_b [↗](zotero://open-pdf/library/items/87BBKH34?page=9&annotation=W99F7LSA)
-> outro
+> [↗](zotero://open-pdf/library/items/87BBKH34?page=9&annotation=W99F7LSA) <span style="background:#2ea8e566;">“outro”</span> <small>#agente #a_b</small>  
 
 ## p. 10
 
-🟣 **nota** · roxo [↗](zotero://open-pdf/library/items/87BBKH34?page=10&annotation=QW9UEHTH)
-**Conteúdo:** só isto
+> [↗](zotero://open-pdf/library/items/87BBKH34?page=10&annotation=QW9UEHTH) <span style="color:#ffd400;font-weight:bold;">nota</span>  
+> ![](img/x.png)
+> só isto
 """
     r = za.parse_export_md(md)
     assert r["2REKQJJZ"] == {"comment": "linha 1\n\nlinha 3", "tags": set()}

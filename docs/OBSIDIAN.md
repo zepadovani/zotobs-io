@@ -68,3 +68,24 @@ JSON é o formato para automação; o Markdown é o formato para revisão humana
 Teses e livros costumam ter capa/romanos, então "página 57" impressa pode ser
 a 87 do PDF. Use `## pl. 57` (rótulo impresso) ou `## p. 87` (índice do
 PDF). `zotobs pages arquivo.pdf` mostra a tabela.
+
+## Formato da nota exportada (`extract`)
+
+Um bloco de citação por anotação: link `[↗]` para o leitor do Zotero, o trecho
+(ou rótulo) na cor da anotação e, logo abaixo, o comentário.
+
+```markdown
+> [↗](zotero://open-pdf/…&annotation=KEY) <span style="background:#ffd40066;">“trecho destacado”</span> <small>#tag</small>
+> meu comentário
+```
+
+| Tipo | 1ª linha do bloco |
+|---|---|
+| destaque | trecho entre aspas com fundo na cor |
+| sublinhado | trecho entre aspas sublinhado na cor |
+| nota / texto livre | rótulo `nota`/`texto` na cor; o conteúdo vem abaixo |
+| imagem | rótulo `imagem` + recorte (`![]()`) abaixo |
+| desenho | rótulo `desenho` na cor, seguido do trecho coberto em *“itálico”* (se houver) + recorte abaixo |
+
+Editar o comentário (linhas `> …` abaixo da 1ª) ou as `<small>#tags</small>` e rodar
+`zotobs sync-md` leva a mudança de volta ao Zotero.

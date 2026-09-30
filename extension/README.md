@@ -23,7 +23,7 @@ depois Web API, depois snippet. `--sem-extensao` pula o primeiro passo.
 ## Editar anotações existentes (M3)
 
 ```bash
-zotobs extract arquivo.pdf -o notas.md     # edite os **Comentário:** e as #tags no Obsidian
+zotobs extract arquivo.pdf -o notas.md     # edite o comentário (linhas "> ..." abaixo do trecho) e as #tags no Obsidian
 zotobs sync-md arquivo.pdf notas.md --dry-run   # mostra o que mudou
 zotobs sync-md arquivo.pdf notas.md             # grava no Zotero (via /zotobs/update)
 ```
