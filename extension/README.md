@@ -36,8 +36,8 @@ Botão direito em itens (ou PDFs) → **zotobs-io: Exportar anotações (pasta p
 **zotobs-io: Exportar anotações para…**. Mesmo formato do `zotobs extract` (o `sync-md`
 funciona sobre ele).
 
-**No leitor de PDF:** botão direito no documento (mesmos dois comandos) ou o ícone de
-download na barra de ferramentas (exporta para a pasta padrão). Abas do leitor já abertas
+**No leitor de PDF:** botão direito no documento (mesmos dois comandos) ou os dois botões na barra de
+ferramentas: **zotobs** (pasta padrão) e **zotobs…** (pasta à escolha). Abas do leitor já abertas
 precisam ser fechadas e reabertas depois de instalar/atualizar.
 
 - *Pasta padrão* (Configurações → zotobs-io): cria

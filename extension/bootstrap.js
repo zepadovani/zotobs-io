@@ -165,13 +165,21 @@ function zotobsRegisterReader(pluginID) {
            { label: "zotobs-io: Exportar anotações para…", onCommand: () => run(reader, "folder") });
   });
   add("renderToolbar", ({ reader, doc, append }) => {
-    const b = doc.createElement("button");
-    b.className = "toolbar-button";
-    b.title = "zotobs-io: exportar anotações para Markdown (pasta padrão)";
-    b.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" ' +
-      'stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8M4.5 6.8 8 10.3l3.5-3.5M3 13h10"/></svg>';
-    b.addEventListener("click", () => run(reader, "default"));
-    append(b);
+    const mk = (label, title, path, mode) => {
+      const b = doc.createElement("button");
+      b.className = "toolbar-button";
+      b.title = title;
+      b.style.cssText = "width:auto;padding:0 8px;display:inline-flex;align-items:center;gap:5px;font-size:12px;";
+      b.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" ' +
+        `stroke-linecap="round" stroke-linejoin="round"><path d="${path}"/></svg><span>${label}</span>`;
+      b.addEventListener("click", () => run(reader, mode));
+      return b;
+    };
+    append(
+      mk("zotobs", "zotobs-io: exportar anotações para Markdown na pasta padrão",
+         "M8 2v7M5 6.2 8 9.2l3-3M2.5 10.5V13h11v-2.5", "default"),
+      mk("zotobs…", "zotobs-io: exportar anotações para Markdown em uma pasta à escolha…",
+         "M2 4h4.2l1.3 1.6H14V12.5H2zM8 7.6v3.4M6.4 9.6 8 11.2l1.6-1.6", "folder"));
   });
 }
 
