@@ -137,4 +137,4 @@ make test
 
 ## Autoria
 
-José Henrique Padovani — <zepadovani@gmail.com>
+José Henrique Padovani
