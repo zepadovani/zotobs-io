@@ -11,8 +11,8 @@
 ## Instalação rápida
 
 ```bash
-git clone git@github.com:zepadovani/zotobs-io.git ~/repositorios/zotero
-cd ~/repositorios/zotero
+git clone git@github.com:zepadovani/zotobs-io.git ~/repositorios/zotobs-io
+cd ~/repositorios/zotobs-io
 ./install.sh --all
 ```
 

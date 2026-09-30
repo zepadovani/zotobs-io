@@ -20,8 +20,8 @@ direto no terminal.
 ## Início rápido
 
 ```bash
-git clone git@github.com:zepadovani/zotobs-io.git ~/repositorios/zotero   # ou já estar aqui
-cd ~/repositorios/zotero
+git clone git@github.com:zepadovani/zotobs-io.git ~/repositorios/zotobs-io
+cd ~/repositorios/zotobs-io
 ./install.sh --all            # skill para os agentes + atalho `zotobs` + modelo de config
 # (opcional, para escrever anotações no Zotero) crie a chave: docs/API-KEY.md
 
