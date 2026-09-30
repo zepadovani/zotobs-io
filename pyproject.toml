@@ -2,6 +2,7 @@
 name = "zotobs-io"
 version = "0.1.0"
 description = "Anotações do Zotero <-> Markdown/Obsidian (CLI + skill para agentes)"
+license = "AGPL-3.0-or-later"
 requires-python = ">=3.9"
 dependencies = ["pymupdf"]
 
