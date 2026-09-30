@@ -9,6 +9,7 @@
   const EMOJI = { amarelo: "🟡", vermelho: "🔴", verde: "🟢", azul: "🔵", roxo: "🟣", magenta: "🟣", laranja: "🟠", cinza: "⚪" };
   const TYPE = { highlight: "destaque", underline: "sublinhado", note: "nota", text: "texto livre", image: "imagem", ink: "desenho" };
   const P = "extensions.zotobs.";
+  const short = (t, n) => (t.length <= n ? t : t.slice(0, n - 1) + "…");
   const pref = (k) => Zotero.Prefs.get(P + k, true);
 
   const Z = {
@@ -154,13 +155,18 @@
             out = PathUtils.join(root, base);
           }
           const r = await Z.exportOne(att, out, win);
-          if (r.path) { ok++; pw.addDescription(`${r.n} anotações${r.via ? " (via CLI)" : " (sem desenhos/texto coberto: " + (r.cliErr ? "CLI falhou: " + r.cliErr : "CLI não encontrado") + ")"} → ${r.path}`); }
+          if (r.path) {
+            ok++;
+            pw.addDescription(`✓ ${short(PathUtils.filename(r.path).replace(/\.md$/, ""), 45)} — ${r.n} anotações` +
+              (r.via ? " (via CLI)" : ` (sem desenhos/texto coberto: ${r.cliErr ? "CLI falhou — " + short(r.cliErr, 80) : "CLI não encontrado"})`));
+          }
           else pw.addDescription(`${att.attachmentFilename}: ${r.skipped}`);
         } catch (e) {
           Zotero.logError(e);
           pw.addDescription(`erro em ${att.attachmentFilename}: ${e.message}`);
         }
       }
+      if (ok) pw.addDescription("em " + short(root, 55));
       pw.show();
       pw.startCloseTimer(8000);
     },
