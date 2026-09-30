@@ -37,9 +37,8 @@ Botão direito em itens (ou PDFs) → **Exportar anotações (pasta padrão)** o
 funciona sobre ele).
 
 - *Pasta padrão* (Configurações → zotobs): cria
-  `<pasta>/<subpasta do ZotMoov>/<nome do PDF>/<nome do PDF>.md` (+ `<nome>_img/`).
-  O caminho espelha o local real do PDF dentro do `dst_dir` do ZotMoov, então
-  segue o mesmo esquema de nomes sem reimplementar os curingas.
+  `<pasta>/<nome do PDF>/<nome do PDF>.md` (+ `<nome do PDF>_img/`). O nome é o do
+  arquivo já renomeado pelo Zotero/ZotMoov, sem a extensão.
 - *Para…*: escolhe uma pasta e grava direto nela só `<nome>.md` e `<nome>_img/`.
 - Se o `.md` já existe, pergunta antes de sobrescrever (edições no Obsidian).
 - Limite: desenhos (`ink`) saem só com comentário; o texto coberto e o recorte

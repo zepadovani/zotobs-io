@@ -29,19 +29,6 @@
       return [...seen.values()];
     },
 
-    /** Subpasta que o ZotMoov usou para este arquivo (relativa à pasta dele), ou o sobrenome do 1º autor. */
-    async subdirFor(att, parent) {
-      const file = await att.getFilePathAsync();
-      const dst = (Zotero.Prefs.get("extensions.zotmoov.dst_dir", true) || "").replace(/\/+$/, "");
-      if (file && dst && file.startsWith(dst + "/")) {
-        const rel = PathUtils.parent(file).slice(dst.length).replace(/^\/+/, "");
-        if (rel) return rel.split("/");
-        return [];
-      }
-      const c = parent && parent.getCreators()[0];
-      return [Zotero.File.getValidFileName((c && (c.lastName || c.name)) || "sem-autor")];
-    },
-
     buildMarkdown(att, parent, anns, imgRelByKey, pdfName) {
       const get = (f) => { try { return (parent && parent.getField(f)) || ""; } catch (e) { return ""; } };
       const title = get("title") || pdfName;
@@ -116,7 +103,7 @@
       return { path: mdPath, n: anns.length };
     },
 
-    /** mode "default": <pasta padrão>/[subpasta ZotMoov]/<nome>/ ; mode "folder": <escolhida>/ direto. */
+    /** mode "default": <pasta padrão>/<nome do PDF>/ ; mode "folder": <escolhida>/ direto. */
     async run(items, mode, win) {
       const atts = Z.pdfAttachments(items);
       const pw = new Zotero.ProgressWindow({ closeOnClick: true });
@@ -133,8 +120,7 @@
           if (mode === "default") {
             const file = await att.getFilePathAsync();
             const base = Zotero.File.getValidFileName(PathUtils.filename(file || att.attachmentFilename).replace(/\.pdf$/i, ""));
-            const sub = pref("mirror_zotmoov") ? await Z.subdirFor(att, att.parentItem) : [];
-            out = PathUtils.join(root, ...sub, base);
+            out = PathUtils.join(root, base);
           }
           const r = await Z.exportOne(att, out, win);
           if (r.path) { ok++; pw.addDescription(`${r.n} anotações → ${r.path}`); }

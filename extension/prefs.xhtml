@@ -3,16 +3,14 @@
     <label><html:h2>zotobs — exportar anotações</html:h2></label>
     <description>
       Pasta padrão onde o comando “Exportar anotações (pasta padrão)” cria, para cada PDF,
-      uma pasta com o mesmo caminho/nome que o ZotMoov usa para o arquivo
-      (&lt;pasta&gt;/Autor/Nome do PDF/Nome do PDF.md).
+      uma pasta com o nome do PDF (o mesmo que o ZotMoov dá ao arquivo):
+      &lt;pasta&gt;/Nome do PDF/Nome do PDF.md, mais Nome do PDF_img/.
     </description>
     <hbox align="center">
       <html:input id="zotobs-export-dir" type="text" preference="extensions.zotobs.export_dir"
                   style="flex: 1" placeholder="/caminho/para/notas-de-leitura"/>
       <button id="zotobs-choose-dir" label="Escolher…"/>
     </hbox>
-    <checkbox id="zotobs-mirror" preference="extensions.zotobs.mirror_zotmoov"
-              label="Repetir a subpasta do ZotMoov (ex.: Autor/) dentro da pasta padrão"/>
     <checkbox id="zotobs-images" preference="extensions.zotobs.export_images"
               label="Salvar imagens das anotações de área (pasta &lt;nome&gt;_img)"/>
   </groupbox>
