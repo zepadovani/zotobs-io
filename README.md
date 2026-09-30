@@ -68,7 +68,7 @@ determinística.
 | add nativo via Web API | ✅ testado ponta a ponta |
 | add nativo via snippet JS (`--offline`) | ✅ testado no Zotero 10.0.4 |
 | add embutido no PDF, `embed`, `strip` | ✅ testado |
-| Extensão do Zotero (M0+M1) | 🧪 escrita, CLI testado com servidor falso; falta teste ao vivo (extension/README.md) |
+| Extensão do Zotero (M0+M1) | ✅ testado no Zotero 10.0.4 (criar + reenvio sem duplicar) |
 | Editar comentário de anotação já existente | ⏳ roteiro |
 
 ## Nomes internos

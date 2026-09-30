@@ -29,5 +29,5 @@ aceita no máx. 500 itens e só cria anotações.
 ## Status dos testes
 
 - CLI ↔ contrato HTTP: automático (`tests/test_bridge.py`, servidor falso).
-- `bootstrap.js` dentro do Zotero 10: **ainda não testado ao vivo** (M0/M1
-  pendentes de verificação manual; ver checklist no PLUGIN-PLAN).
+- `bootstrap.js` dentro do Zotero 10: verificado ao vivo no Zotero 10.0.4 (M0/M1
+  ok; pendentes: token errado e Zotero fechado).

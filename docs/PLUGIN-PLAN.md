@@ -1,13 +1,13 @@
 # Plano: extensão do Zotero ("zotobs-bridge")
 
-> **Andamento (2026-09-30):** M0/M1 **escritos** (`extension/`, transporte no CLI,
-> testes com servidor falso). Falta **verificação manual no Zotero 10.0.4**:
-> (1) instalar o `.xpi`; (2) `zotobs bridge-token` mostra “extensão ativa”;
-> (3) `zotobs add` cria anotação e o reenvio pula; (4) token errado → 403.
-> Decisões: o pareamento usa o arquivo `~/.config/zotero-anot/bridge_token`
-> (a extensão o lê a cada requisição; sem preferência do Zotero); a extensão
-> é tentada **antes** da Web API (é local e imediata). Confirmar no teste ao
-> vivo: `req.headers` em minúsculas e assinatura de `init`.
+> **Andamento (2026-09-30):** M0 e M1 **verificados ao vivo no Zotero 10.0.4**:
+> instalação do `.xpi` (exige `update_url` no manifesto), `zotobs bridge-token`
+> mostra “extensão ativa”, `zotobs add` cria a anotação no leitor e o reenvio
+> pula (“0 criadas, 1 já existiam”). Ainda sem teste ao vivo: token errado
+> (403, só coberto com servidor falso) e Zotero fechado (fallback).
+> Decisões: pareamento por arquivo `~/.config/zotero-anot/bridge_token` (lido
+> a cada requisição; sem preferência do Zotero); a extensão é tentada **antes**
+> da Web API (é local e imediata).
 
 ## Objetivo
 
