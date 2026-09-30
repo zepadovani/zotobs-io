@@ -201,6 +201,12 @@ def post_bridge(token: str, library_id: int, att_key: str, items: list[dict]) ->
                    {"library": library_id, "attachment": att_key, "items": items}, timeout=60)
 
 
+def update_bridge(token: str, library_id: int, att_key: str, items: list[dict]) -> dict:
+    """items: [{'key', 'comment'?, 'tags'?}] -> {'atualizadas','inalteradas','falhas'}."""
+    return _bridge("POST", "/zotobs/update", token,
+                   {"library": library_id, "attachment": att_key, "items": items}, timeout=60)
+
+
 # ------------------------------------------------------------- snippet JS
 def js_snippet(library_id: int, att_key: str, items: list[dict]) -> str:
     data = json.dumps(items, ensure_ascii=False, indent=1)

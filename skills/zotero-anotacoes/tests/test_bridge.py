@@ -81,3 +81,36 @@ def test_token_criado_com_modo_600(bridge):
     t = zn.bridge_token(create=True)
     assert len(t) >= 32 and zn.bridge_token() == t
     assert zn.TOKEN_FILE.stat().st_mode & 0o777 == 0o600
+
+
+def test_update_bridge(bridge, monkeypatch):
+    def fake(method, path, token, body=None, timeout=15):
+        assert (method, path) == ("POST", "/zotobs/update") and body["items"][0]["comment"] == "x"
+        return {"atualizadas": ["AAAAAAAA"], "inalteradas": [], "falhas": []}
+    monkeypatch.setattr(zn, "_bridge", fake)
+    assert zn.update_bridge(TOKEN, 1, "ATT", [{"key": "AAAAAAAA", "comment": "x"}])["atualizadas"] == ["AAAAAAAA"]
+
+
+def test_parse_export_md():
+    import zotero_anot as za
+    md = """## p. 9 (impresso: ix)
+
+🟡 **destaque** · amarelo [↗](zotero://open-pdf/library/items/87BBKH34?page=9&annotation=2REKQJJZ)
+> trecho
+
+**Comentário:** linha 1
+
+linha 3
+
+🔵 **destaque** · azul · #agente #a_b [↗](zotero://open-pdf/library/items/87BBKH34?page=9&annotation=W99F7LSA)
+> outro
+
+## p. 10
+
+🟣 **nota** · roxo [↗](zotero://open-pdf/library/items/87BBKH34?page=10&annotation=QW9UEHTH)
+**Conteúdo:** só isto
+"""
+    r = za.parse_export_md(md)
+    assert r["2REKQJJZ"] == {"comment": "linha 1\n\nlinha 3", "tags": set()}
+    assert r["W99F7LSA"] == {"comment": "", "tags": {"agente", "a_b"}}
+    assert r["QW9UEHTH"]["comment"] == "só isto"

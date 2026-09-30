@@ -828,6 +828,78 @@ def cmd_add(args):
         sys.exit(1)
 
 
+_HEAD = re.compile(r"^\S+ \*\*[^*]+\*\*.*\[↗\]\(zotero://open-pdf/[^)]*annotation=([A-Z0-9]{8})\)\s*$")
+_CMT = re.compile(r"^\*\*(Comentário|Conteúdo):\*\* ?(.*)$")
+
+
+def parse_export_md(text: str) -> dict[str, dict]:
+    """Nota exportada por `extract` -> {chave: {'comment': str, 'tags': set[str]}}."""
+    out: dict[str, dict] = {}
+    cur = None
+    lines = text.splitlines()
+    for ln in lines + ["## fim"]:
+        m = _HEAD.match(ln)
+        if m or ln.startswith("## "):
+            if cur is not None:
+                cur["comment"] = "\n".join(cur.pop("_c")).strip("\n") if "_c" in cur else ""
+            cur = None
+            if m:
+                tags = {t[1:] for t in ln.split("[↗]")[0].split() if t.startswith("#")}
+                cur = out.setdefault(m.group(1), {"comment": "", "tags": tags})
+            continue
+        if cur is None:
+            continue
+        c = _CMT.match(ln)
+        if c and "_c" not in cur:
+            cur["_c"] = [c.group(2)]
+        elif "_c" in cur:
+            cur["_c"].append(ln)
+    return out
+
+
+def cmd_sync_md(args):
+    import zotero_native as zn
+    data_dir, base = zotero_dirs(args)
+    con = open_db(data_dir)
+    att = resolve_attachment(con, data_dir, base, Path(args.pdf).expanduser())
+    if not att:
+        die("este PDF não está registrado como attachment no Zotero")
+    want = parse_export_md(Path(args.md).expanduser().read_text(encoding="utf-8"))
+    changes = []
+    for a in zotero_annotations(con, att):
+        w = want.get(a["key"])
+        if not w:
+            continue
+        ch = {"key": a["key"]}
+        if w["comment"] != a["comentario"].strip("\n"):
+            ch["comment"] = w["comment"]
+        norm_tag = lambda t: t.replace(" ", "_")
+        if {norm_tag(t) for t in a["tags"]} != w["tags"]:
+            keep = {norm_tag(t): t for t in a["tags"]}
+            ch["tags"] = [keep.get(t, t) for t in sorted(w["tags"])]
+        if len(ch) > 1:
+            changes.append(ch)
+            print(f"[mudou] {a['key']} p.{a['pagina']}: " + ", ".join(k for k in ch if k != "key"))
+    if not changes:
+        print("nada a sincronizar.")
+        return
+    if args.dry_run:
+        print(f"{len(changes)} alterações (nada gravado)")
+        return
+    token = zn.bridge_token()
+    if not token:
+        die("sync-md precisa da extensão zotobs-bridge: rode `zotobs bridge-token` e instale o .xpi")
+    try:
+        res = zn.update_bridge(token, att["libraryID"], att["key"], changes)
+    except zn.ApiError as e:
+        die(f"{e} (a extensão v0.1.0+ está instalada e o Zotero aberto?)")
+    print(f"[zotero/extensão] {len(res['atualizadas'])} atualizadas, {len(res['inalteradas'])} inalteradas, {len(res['falhas'])} falhas")
+    for f in res["falhas"]:
+        print("  falha:", f)
+    if res["falhas"]:
+        sys.exit(1)
+
+
 def cmd_bridge_token(args):
     import zotero_native as zn
     new = zn.bridge_token() is None
@@ -930,6 +1002,12 @@ def main():
     r.add_argument("--dry-run", action="store_true")
     r.add_argument("--saida")
     r.set_defaults(fn=cmd_strip)
+
+    sy = sub.add_parser("sync-md", help="envia ao Zotero edições de comentário/tags feitas na nota exportada (.md)")
+    sy.add_argument("pdf")
+    sy.add_argument("md", help="nota gerada por `extract` (com os links zotero://…annotation=KEY)")
+    sy.add_argument("--dry-run", action="store_true")
+    sy.set_defaults(fn=cmd_sync_md)
 
     t = sub.add_parser("bridge-token", help="cria/mostra o token de pareamento com a extensão zotobs-bridge")
     t.set_defaults(fn=cmd_bridge_token)

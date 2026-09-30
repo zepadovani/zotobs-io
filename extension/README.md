@@ -1,4 +1,4 @@
-# extension/ — zotobs-bridge (v0.1.0, M0+M1)
+# extension/ — zotobs-bridge (v0.1.0, M0–M3)
 
 Extensão do Zotero 7+ que recebe anotações do CLI em
 `http://127.0.0.1:23119/zotobs/*` e as cria via `Zotero.Annotations.saveFromJSON`
@@ -19,6 +19,16 @@ escolher o `.xpi`. Depois: `zotobs bridge-token` de novo deve mostrar
 
 `zotobs add …` tenta a extensão primeiro (se houver token e ela responder),
 depois Web API, depois snippet. `--sem-extensao` pula o primeiro passo.
+
+## Editar anotações existentes (M3)
+
+```bash
+zotobs extract arquivo.pdf -o notas.md     # edite os **Comentário:** e as #tags no Obsidian
+zotobs sync-md arquivo.pdf notas.md --dry-run   # mostra o que mudou
+zotobs sync-md arquivo.pdf notas.md             # grava no Zotero (via /zotobs/update)
+```
+Só comentário e tags; só anotações do anexo indicado. Requer a extensão ≥ 0.1.0
+(reinstale o `.xpi`).
 
 ## Segurança
 
