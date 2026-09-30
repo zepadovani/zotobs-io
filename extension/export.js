@@ -66,24 +66,38 @@
       return L.join("\n").replace(/\s+$/, "") + "\n";
     },
 
-    /** CLI zotobs: caminho configurado, ou ~/.local/bin/zotobs, ou o clone local do projeto. */
+    /** CLI zotobs: caminho configurado, ou ~/.local/bin/zotobs(.cmd), ou o clone local do projeto. */
     async findCli() {
       if (!pref("use_cli")) return null;
-      const home = Services.dirsvc.get("Home", Ci.nsIFile).path;
-      const cands = [pref("cli_path"), PathUtils.join(home, ".local", "bin", "zotobs"),
-        PathUtils.join(home, "repositorios", "zotobs-io", "bin", "zotobs")];
+      const home = Services.dirsvc.get("Home", Ci.nsIFile).path, ext = Zotero.isWin ? ".cmd" : "";
+      const cands = [pref("cli_path"), PathUtils.join(home, ".local", "bin", "zotobs" + ext),
+        PathUtils.join(home, "repositorios", "zotobs-io", "bin", "zotobs" + ext)];
       for (const c of cands) if (c && (await IOUtils.exists(c))) return c;
       return null;
     },
 
-    /** Exportação completa pelo CLI (desenhos sobre imagens, texto coberto, recortes). */
+    /** Exportação completa pelo CLI (desenhos sobre imagens, texto coberto, recortes).
+     *  Retorna "" se deu certo; senão, o fim do log do CLI. */
     async exportViaCli(cli, file, mdPath, imgDir, mode) {
-      const log = PathUtils.join(Services.dirsvc.get("TmpD", Ci.nsIFile).path, "zotobs-export.log");
+      const tmp = Services.dirsvc.get("TmpD", Ci.nsIFile).path;
+      const log = PathUtils.join(tmp, "zotobs-export.log");
       const t0 = Date.now() - 1000;
       try {
-        // login shell para herdar o PATH do usuário (o CLI usa `uv`); $0=cli, $1=pdf, $2=md, $3=imagens
-        await Zotero.Utilities.Internal.exec("/bin/zsh",
-          ["-lc", 'export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"; "$0" extract "$1" -o "$2" --imagens "$3" --se-existe "$5" >"$4" 2>&1', cli, file, mdPath, imgDir, log, mode]);
+        if (Zotero.isWin) {
+          // Windows (não testado): script .cmd temporário, evita problemas de aspas
+          const q = (x) => '"' + x.replaceAll('"', "") + '"';
+          const bat = PathUtils.join(tmp, "zotobs-export.cmd");
+          await IOUtils.writeUTF8(bat, "@echo off\r\nchcp 65001 >nul\r\n" +
+            'set "PATH=%USERPROFILE%\\.local\\bin;%PATH%"\r\n' +
+            `call ${q(cli)} extract ${q(file)} -o ${q(mdPath)} --imagens ${q(imgDir)} --se-existe ${mode} > ${q(log)} 2>&1\r\n`);
+          await Zotero.Utilities.Internal.exec("cmd.exe", ["/d", "/c", bat]);
+        } else {
+          // macOS (testado: zsh) / Linux (não testado: bash). PATH explícito: o Zotero não herda o do terminal.
+          const sh = Zotero.isMac ? "/bin/zsh" : "/bin/bash";
+          await Zotero.Utilities.Internal.exec(sh,
+            ["-lc", 'export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"; "$0" extract "$1" -o "$2" --imagens "$3" --se-existe "$5" >"$4" 2>&1',
+              cli, file, mdPath, imgDir, log, mode]);
+        }
       } catch (e) { Zotero.debug("[zotobs-bridge] CLI: " + e + " (log em " + log + ")"); }
       if ((await IOUtils.exists(mdPath)) && (await IOUtils.stat(mdPath)).lastModified >= t0) return "";
       try { return (await IOUtils.readUTF8(log)).trim().split("\n").slice(-2).join(" | "); }

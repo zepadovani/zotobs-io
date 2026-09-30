@@ -121,3 +121,30 @@ Instale a skill ([INSTALL.md](INSTALL.md)) e peça em linguagem natural:
 "extraia minhas anotações deste PDF do Zotero para markdown", "marque na
 introdução os trechos com problema de clareza, com comentários". O agente lê o
 PDF, gera o JSON/Markdown, roda `--dry-run`, mostra o resumo e só então grava.
+
+
+## `extract … --se-existe` — reexportar sobre uma nota existente
+
+```bash
+zotobs extract artigo.pdf -o notas.md --imagens notas_img                 # mescla (padrão)
+zotobs extract artigo.pdf -o notas.md --imagens notas_img --se-existe sobrescrever
+```
+Mesclar atualiza os blocos pelo Zotero e mantém o que você escreveu entre eles
+(ver [OBSIDIAN.md](OBSIDIAN.md)). Uma cópia da nota anterior fica em
+`~/.cache/zotero-anot/backups/`.
+
+## `sync-md` — levar edições do Markdown ao Zotero
+
+```bash
+zotobs sync-md artigo.pdf notas.md --dry-run     # mostra o que mudou
+zotobs sync-md artigo.pdf notas.md               # grava (precisa do plugin com o Zotero aberto)
+```
+Sincroniza comentário e tags dos blocos exportados por `extract`.
+
+## `bridge-token` — parear o terminal com o plugin
+
+```bash
+zotobs bridge-token     # cria o token e diz se o plugin está ativo
+```
+`add` usa o plugin automaticamente quando ele responde; `--sem-extensao` pula
+essa etapa e vai direto para a Web API/snippet.

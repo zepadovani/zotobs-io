@@ -87,7 +87,8 @@ def _prefs() -> dict[str, str]:
     for p in Path.home().glob("Library/Application Support/Zotero/Profiles/*/prefs.js"):
         for m in re.finditer(r'user_pref\("([^"]+)",\s*"?([^")]*)"?\);', p.read_text(errors="ignore")):
             out[m.group(1)] = m.group(2)
-    for p in Path.home().glob(".zotero/zotero/*/prefs.js"):  # Linux
+    roots = [Path(os.environ["APPDATA"]) / "Zotero" / "Zotero" / "Profiles"] if os.environ.get("APPDATA") else []  # Windows
+    for p in [q for r in roots for q in r.glob("*/prefs.js")] + list(Path.home().glob(".zotero/zotero/*/prefs.js")):  # + Linux
         for m in re.finditer(r'user_pref\("([^"]+)",\s*"?([^")]*)"?\);', p.read_text(errors="ignore")):
             out[m.group(1)] = m.group(2)
     return out
@@ -931,9 +932,11 @@ def add_native(args, doc, anns):
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(js, encoding="utf-8")
     copied = False
-    if shutil.which("pbcopy") and not os.environ.get("ZOTERO_ANOT_NO_CLIP"):
+    clip = next(([c] + a for c, a in (("pbcopy", []), ("wl-copy", []), ("xclip", ["-selection", "clipboard"]), ("clip", []))
+                 if shutil.which(c)), None)
+    if clip and not os.environ.get("ZOTERO_ANOT_NO_CLIP"):
         import subprocess
-        subprocess.run(["pbcopy"], input=js.encode(), check=False)
+        subprocess.run(clip, input=js.encode("utf-16-le" if clip[0] == "clip" else "utf-8"), check=False)
         copied = True
     print(f"Snippet salvo em {out}" + (" e copiado para a área de transferência." if copied else "."))
     print("No Zotero: Ferramentas > Developer > Run JavaScript > colar > Run.")

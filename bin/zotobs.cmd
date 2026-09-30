@@ -1,0 +1,3 @@
+@echo off
+rem Atalho do zotobs para Windows (NAO TESTADO): zotobs <subcomando> ...
+uv run --script "%~dp0..\skills\zotero-anotacoes\scripts\zotero_anot.py" %*

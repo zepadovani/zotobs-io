@@ -4,4 +4,4 @@ test:
 install:
 	./install.sh --all
 xpi:
-	./extension/build.sh
+	python3 extension/build.py

@@ -8,7 +8,7 @@ Extensão do Zotero 7+ que recebe anotações do CLI em
 ## Instalar
 
 ```bash
-make xpi                                   # gera extension/build/zotobs-bridge.xpi
+python3 extension/build.py                    # gera extension/build/zotobs-bridge-<versão>.xpi
 zotobs bridge-token                        # cria ~/.config/zotero-anot/bridge_token (modo 600)
 ```
 Zotero → Ferramentas → Plugins → engrenagem → *Install Plugin From File…* →
