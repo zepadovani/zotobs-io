@@ -1,0 +1,7 @@
+[
+  {"page": 3, "type": "highlight", "color": "green",
+   "text": "trecho literal que existe na página 3", "comment": "por que importa"},
+  {"page_label": "iv", "type": "underline", "color": "blue", "text": "outro trecho literal"},
+  {"page": 3, "type": "note", "comment": "comentário geral da página", "color": "orange"},
+  {"page": 5, "type": "text", "comment": "caixa de texto livre", "rect": [300, 60, 540, 110]}
+]

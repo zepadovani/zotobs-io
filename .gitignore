@@ -1,0 +1,11 @@
+__pycache__/
+.pytest_cache/
+.venv/
+*.pyc
+.DS_Store
+# nunca versionar credenciais nem dados do usuário
+config.json
+*.sqlite
+*.sqlite-wal
+*.xpi
+build/

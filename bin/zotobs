@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Atalho: zotobs <subcomando> ...  (extract | add | embed | strip | info | pages)
+DIR="$(cd "$(dirname "$(readlink "${BASH_SOURCE[0]}" || echo "${BASH_SOURCE[0]}")")/.." && pwd)"
+exec uv run --script "$DIR/skills/zotero-anotacoes/scripts/zotero_anot.py" "$@"
