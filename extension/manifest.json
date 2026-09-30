@@ -1,0 +1,15 @@
+{
+  "manifest_version": 2,
+  "name": "zotobs-bridge",
+  "version": "0.1.0",
+  "description": "Recebe anotações do CLI zotobs por um endpoint local e as cria no Zotero.",
+  "author": "José Henrique Padovani",
+  "homepage_url": "https://github.com/zepadovani/zotobs-io",
+  "applications": {
+    "zotero": {
+      "id": "zotobs-bridge@zotobs-io",
+      "strict_min_version": "6.999",
+      "strict_max_version": "10.*"
+    }
+  }
+}

@@ -1,8 +1,33 @@
-# extension/ — zotobs-bridge (planejada)
+# extension/ — zotobs-bridge (v0.1.0, M0+M1)
 
-Extensão do Zotero que receberá anotações do CLI por um endpoint local e as
-criará via `Zotero.Annotations.saveFromJSON`, dispensando o snippet colado no
-Run JavaScript. **Ainda não implementada.** Plano, arquitetura, segurança e
-fases (M0–M4) em [../docs/PLUGIN-PLAN.md](../docs/PLUGIN-PLAN.md).
+Extensão do Zotero 7+ que recebe anotações do CLI em
+`http://127.0.0.1:23119/zotobs/*` e as cria via `Zotero.Annotations.saveFromJSON`
+— sem chave de API, sem rede, sem colar snippet. Plano e fases:
+[../docs/PLUGIN-PLAN.md](../docs/PLUGIN-PLAN.md).
 
-Arquivos previstos: `manifest.json`, `bootstrap.js`, `build.sh`.
+## Instalar
+
+```bash
+make xpi                                   # gera extension/build/zotobs-bridge.xpi
+zotobs bridge-token                        # cria ~/.config/zotero-anot/bridge_token (modo 600)
+```
+Zotero → Ferramentas → Plugins → engrenagem → *Install Plugin From File…* →
+escolher o `.xpi`. Depois: `zotobs bridge-token` de novo deve mostrar
+“extensão ativa”.
+
+## Uso
+
+`zotobs add …` tenta a extensão primeiro (se houver token e ela responder),
+depois Web API, depois snippet. `--sem-extensao` pula o primeiro passo.
+
+## Segurança
+
+O endpoint exige `X-Zotobs-Token` igual ao arquivo `bridge_token` (lido a cada
+requisição; sem arquivo = tudo negado), recusa requisições com `Origin`,
+aceita no máx. 500 itens e só cria anotações.
+
+## Status dos testes
+
+- CLI ↔ contrato HTTP: automático (`tests/test_bridge.py`, servidor falso).
+- `bootstrap.js` dentro do Zotero 10: **ainda não testado ao vivo** (M0/M1
+  pendentes de verificação manual; ver checklist no PLUGIN-PLAN).

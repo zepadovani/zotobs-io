@@ -2,7 +2,9 @@
 
   1. Web API (api.zotero.org): cria itens `annotation` filhos do attachment;
      o Zotero desktop os baixa no próximo sync. Precisa de chave com escrita.
-  2. Snippet JS: gera código para colar em Ferramentas > Developer > Run
+  2. Extensão local (zotobs-bridge): POST em 127.0.0.1:23119/zotobs/import;
+     sem rede nem chave de API, exige token pareado (bridge_token).
+  3. Snippet JS: gera código para colar em Ferramentas > Developer > Run
      JavaScript (usa a API interna do Zotero; sem rede nem chave).
 
 As duas usam a MESMA chave determinística por anotação (zkey), então rodar
@@ -150,6 +152,53 @@ def post_annotations(prefix: str, att_key: str, items: list[dict], key: str) -> 
         for k, f in res.get("failed", {}).items():
             out["falhas"].append(f"{batch[int(k)]['key']}: {f.get('message')}")
     return out
+
+
+# ------------------------------------------------- extensão local (bridge)
+BRIDGE = os.environ.get("ZOTOBS_BRIDGE_URL", "http://127.0.0.1:23119")
+TOKEN_FILE = CONFIG.parent / "bridge_token"
+
+
+def bridge_token(create: bool = False) -> str | None:
+    """Token de pareamento com a extensão (a extensão lê o mesmo arquivo)."""
+    if TOKEN_FILE.exists():
+        t = TOKEN_FILE.read_text().strip()
+        if t:
+            return t
+    if not create:
+        return None
+    TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
+    t = secrets.token_urlsafe(32)
+    fd = os.open(TOKEN_FILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
+        f.write(t + "\n")
+    return t
+
+
+def _bridge(method: str, path: str, token: str, body=None, timeout=15) -> dict:
+    data = json.dumps(body, ensure_ascii=False).encode() if body is not None else None
+    h = {"X-Zotobs-Token": token}
+    if data is not None:
+        h["Content-Type"] = "application/json"
+    req = urllib.request.Request(BRIDGE + path, data=data, method=method, headers=h)
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.loads(r.read().decode())
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode(errors="replace")[:300]
+        raise ApiError(f"extensão respondeu {e.code}: {detail}")
+    except (urllib.error.URLError, TimeoutError, OSError) as e:
+        raise ApiError(f"extensão inacessível: {e}")
+
+
+def bridge_ping(token: str) -> dict:
+    return _bridge("GET", "/zotobs/ping", token, timeout=2)
+
+
+def post_bridge(token: str, library_id: int, att_key: str, items: list[dict]) -> dict:
+    """Mesmo retorno de post_annotations: {'criadas','puladas','falhas'}."""
+    return _bridge("POST", "/zotobs/import", token,
+                   {"library": library_id, "attachment": att_key, "items": items}, timeout=60)
 
 
 # ------------------------------------------------------------- snippet JS

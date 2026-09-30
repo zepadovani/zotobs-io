@@ -731,6 +731,19 @@ def add_native(args, doc, anns):
     items = [zn.to_native(doc[a["page"] - 1], a, att["key"], args.autor, args.tag) for a in anns]
     reason = None
     key, uid = zn.creds()
+    if not args.sem_extensao:
+        token = zn.bridge_token()
+        if token:
+            try:
+                info = zn.bridge_ping(token)
+                res = zn.post_bridge(token, att["libraryID"], att["key"], items)
+                print(f"[zotero/extensão v{info.get('version')}] {len(res['criadas'])} criadas, "
+                      f"{len(res['puladas'])} já existiam, {len(res['falhas'])} falhas")
+                for f in res["falhas"]:
+                    print("  falha:", f)
+                return len(res["falhas"]) == 0
+            except zn.ApiError as e:
+                print(f"[zotero/extensão] não usada: {e}")
     if args.offline:
         reason = "--offline"
     elif not key:
@@ -815,6 +828,18 @@ def cmd_add(args):
         sys.exit(1)
 
 
+def cmd_bridge_token(args):
+    import zotero_native as zn
+    new = zn.bridge_token() is None
+    zn.bridge_token(create=True)
+    print(f"token {'criado' if new else 'já existia'} em {zn.TOKEN_FILE} (modo 600)")
+    try:
+        info = zn.bridge_ping(zn.bridge_token())
+        print(f"extensão ativa: v{info.get('version')}, Zotero {info.get('zotero')}")
+    except zn.ApiError as e:
+        print(f"extensão não respondeu ({e}); instale o .xpi e abra o Zotero.")
+
+
 def cmd_embed(args):
     """Anotações do banco do Zotero -> anotações embutidas no PDF."""
     pdf = Path(args.pdf).expanduser()
@@ -884,6 +909,8 @@ def main():
     a.add_argument("--destino", choices=["zotero", "pdf", "ambos"], default="zotero",
                    help="zotero (padrão): anotação nativa via Web API, com fallback JS; pdf: embutida no arquivo")
     a.add_argument("--offline", action="store_true", help="não usa a API: gera o snippet JS para colar no Zotero")
+    a.add_argument("--sem-extensao", action="store_true",
+                   help="não tenta a extensão zotobs-bridge (vai direto para Web API/snippet)")
     a.add_argument("--tag", default="agente", help="tag aplicada às anotações nativas ('' = nenhuma)")
     a.add_argument("--autor", default=AUTHOR_DEFAULT, help="nome do autor gravado nas anotações")
     a.add_argument("--dry-run", action="store_true", help="só valida/mostra o que faria")
@@ -903,6 +930,9 @@ def main():
     r.add_argument("--dry-run", action="store_true")
     r.add_argument("--saida")
     r.set_defaults(fn=cmd_strip)
+
+    t = sub.add_parser("bridge-token", help="cria/mostra o token de pareamento com a extensão zotobs-bridge")
+    t.set_defaults(fn=cmd_bridge_token)
 
     i = sub.add_parser("info", help="item do Zotero + contagens")
     i.add_argument("pdf")

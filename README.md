@@ -40,7 +40,7 @@ Requisitos: macOS/Linux, Zotero 7+ (testado no 10.0.4), [`uv`](https://docs.astr
  nota Markdown (Obsidian) ─┐
  JSON (agente)            ─┴─►  zotobs add  ──►  1. Web API do Zotero     (padrão, precisa de chave e rede)
                                                  2. Snippet JS (--offline) (colar em Run JavaScript)
-                                                 3. [futuro] extensão local (sem rede, sem colar)
+                                                 3. (já tentada antes: extensão local zotobs-bridge)
                                                  4. --destino pdf          (embutida no arquivo)
 ```
 
@@ -68,7 +68,7 @@ determinística.
 | add nativo via Web API | ✅ testado ponta a ponta |
 | add nativo via snippet JS (`--offline`) | ✅ testado no Zotero 10.0.4 |
 | add embutido no PDF, `embed`, `strip` | ✅ testado |
-| Extensão do Zotero | 📝 planejada (docs/PLUGIN-PLAN.md) |
+| Extensão do Zotero (M0+M1) | 🧪 escrita, CLI testado com servidor falso; falta teste ao vivo (extension/README.md) |
 | Editar comentário de anotação já existente | ⏳ roteiro |
 
 ## Nomes internos

@@ -1,5 +1,14 @@
 # Plano: extensão do Zotero ("zotobs-bridge")
 
+> **Andamento (2026-09-30):** M0/M1 **escritos** (`extension/`, transporte no CLI,
+> testes com servidor falso). Falta **verificação manual no Zotero 10.0.4**:
+> (1) instalar o `.xpi`; (2) `zotobs bridge-token` mostra “extensão ativa”;
+> (3) `zotobs add` cria anotação e o reenvio pula; (4) token errado → 403.
+> Decisões: o pareamento usa o arquivo `~/.config/zotero-anot/bridge_token`
+> (a extensão o lê a cada requisição; sem preferência do Zotero); a extensão
+> é tentada **antes** da Web API (é local e imediata). Confirmar no teste ao
+> vivo: `req.headers` em minúsculas e assinatura de `init`.
+
 ## Objetivo
 
 Tornar o modo **sem rede** tão automático quanto a Web API: o `zotobs add`
