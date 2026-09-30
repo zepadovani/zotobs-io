@@ -2,12 +2,7 @@
  * `zotobs extract`, para que `zotobs sync-md` continue valendo).
  * Carregado por bootstrap.js; define Zotero.Zotobs. */
 (function () {
-  const COLORS = {
-    "#ffd400": "amarelo", "#ff6666": "vermelho", "#5fb236": "verde", "#2ea8e5": "azul",
-    "#a28ae5": "roxo", "#e56eee": "magenta", "#f19837": "laranja", "#aaaaaa": "cinza",
-  };
-  const EMOJI = { amarelo: "🟡", vermelho: "🔴", verde: "🟢", azul: "🔵", roxo: "🟣", magenta: "🟣", laranja: "🟠", cinza: "⚪" };
-  const TYPE = { highlight: "destaque", underline: "sublinhado", note: "nota", text: "texto livre", image: "imagem", ink: "desenho" };
+  const TYPE = { note: "nota", text: "texto", image: "imagem", ink: "desenho" };
   const P = "extensions.zotobs.";
   const short = (t, n) => (t.length <= n ? t : t.slice(0, n - 1) + "…");
   const pref = (k) => Zotero.Prefs.get(P + k, true);
@@ -45,25 +40,27 @@
       for (const a of anns) cont.set(a.annotationType, (cont.get(a.annotationType) || 0) + 1);
       L.push("_" + [...cont].map(([t, n]) => `${n} ${t}`).join(", ") + "_", "");
       let page = null;
+      const esc = (t) => (t || "").split(/\s+/).filter(Boolean).join(" ").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
       for (const a of anns) {
         const pg = JSON.parse(a.annotationPosition).pageIndex + 1;
         if (pg !== page) {
           page = pg;
           const lab = a.annotationPageLabel && String(a.annotationPageLabel) !== String(pg)
             ? ` (impresso: ${a.annotationPageLabel})` : "";
-          L.push(`## p. ${pg}${lab}`, "");
+          L.push(`#### p. ${pg}${lab}`, `[↗ abrir página](zotero://open-pdf/library/items/${att.key}?page=${pg})`, "");
         }
-        const hex = (a.annotationColor || "").toLowerCase();
-        const cn = COLORS[hex] || hex;
-        let head = `${EMOJI[cn] || "▫️"} **${TYPE[a.annotationType] || a.annotationType}**` + (cn ? ` · ${cn}` : "");
+        const hex = (a.annotationColor || "").toLowerCase(), typ = a.annotationType;
+        const link = `[↗](zotero://open-pdf/library/items/${att.key}?page=${pg}&annotation=${a.key})`;
+        let head;
+        if (typ === "highlight") head = hex ? `<span style="background:${hex}66;"><i>“${esc(a.annotationText)}”</i></span>` : `<i>“${esc(a.annotationText)}”</i>`;
+        else if (typ === "underline") head = `<span style="text-decoration:underline;${hex ? `text-decoration-color:${hex};` : ""}text-decoration-thickness:2px;"><i>“${esc(a.annotationText)}”</i></span>`;
+        else head = `<span style="${hex ? `color:${hex};` : ""}font-weight:bold;">${TYPE[typ] || typ}</span>`;
         const tags = a.getTags().map((t) => t.tag);
-        if (tags.length) head += " · " + tags.map((t) => "#" + t.replaceAll(" ", "_")).join(" ");
-        L.push(`${head} [↗](zotero://open-pdf/library/items/${att.key}?page=${pg}&annotation=${a.key})`);
-        if (a.annotationText) L.push(...a.annotationText.split("\n").map((l) => "> " + l));
-        if (imgRelByKey.has(a.key)) L.push(`![](${imgRelByKey.get(a.key).replaceAll(" ", "%20")})`);
-        if (a.annotationComment) {
-          L.push("", `**${["highlight", "underline", "image", "ink"].includes(a.annotationType) ? "Comentário" : "Conteúdo"}:** ${a.annotationComment}`);
-        }
+        if (tags.length) head += " <small>" + tags.map((t) => "#" + t.replaceAll(" ", "_")).join(" ") + "</small>";
+        L.push(`> ${link} ${head}  `);
+        if (imgRelByKey.has(a.key)) L.push(`> ![](${imgRelByKey.get(a.key).replaceAll(" ", "%20")})`);
+        const body = a.annotationComment || (["note", "text"].includes(typ) ? a.annotationText : "");
+        for (const ln of (body || "").split("\n")) if (body) L.push(ln ? "> " + ln : ">");
         L.push("");
       }
       return L.join("\n").replace(/\s+$/, "") + "\n";
@@ -80,13 +77,13 @@
     },
 
     /** Exportação completa pelo CLI (desenhos sobre imagens, texto coberto, recortes). */
-    async exportViaCli(cli, file, mdPath, imgDir) {
+    async exportViaCli(cli, file, mdPath, imgDir, mode) {
       const log = PathUtils.join(Services.dirsvc.get("TmpD", Ci.nsIFile).path, "zotobs-export.log");
       const t0 = Date.now() - 1000;
       try {
         // login shell para herdar o PATH do usuário (o CLI usa `uv`); $0=cli, $1=pdf, $2=md, $3=imagens
         await Zotero.Utilities.Internal.exec("/bin/zsh",
-          ["-lc", 'export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"; "$0" extract "$1" -o "$2" --imagens "$3" >"$4" 2>&1', cli, file, mdPath, imgDir, log]);
+          ["-lc", 'export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"; "$0" extract "$1" -o "$2" --imagens "$3" --se-existe "$5" >"$4" 2>&1', cli, file, mdPath, imgDir, log, mode]);
       } catch (e) { Zotero.debug("[zotobs-bridge] CLI: " + e + " (log em " + log + ")"); }
       if ((await IOUtils.exists(mdPath)) && (await IOUtils.stat(mdPath)).lastModified >= t0) return "";
       try { return (await IOUtils.readUTF8(log)).trim().split("\n").slice(-2).join(" | "); }
@@ -103,17 +100,29 @@
       if (!anns.length) return { skipped: "sem anotações" };
 
       const mdPath = PathUtils.join(outDir, base + ".md");
-      if (await IOUtils.exists(mdPath) &&
-          !Services.prompt.confirm(win, "zotobs", `“${base}.md” já existe em\n${outDir}\n\nSobrescrever? (edições feitas na nota serão perdidas)`))
-        return { skipped: "já existe (mantido)" };
+      let mode = "sobrescrever";
+      if (await IOUtils.exists(mdPath)) {
+        const S = Services.prompt, F = S.BUTTON_TITLE_IS_STRING;
+        const r = S.confirmEx(win, "zotobs",
+          `“${short(base, 60)}.md” já existe em\n${short(outDir, 70)}\n\n` +
+          "Mesclar mantém o que você escreveu entre as anotações e atualiza o resto; sobrescrever recria o arquivo.",
+          S.BUTTON_POS_0 * F + S.BUTTON_POS_1 * F + S.BUTTON_POS_2 * F,
+          "Mesclar (manter o que escrevi)", "Sobrescrever", "Cancelar", null, {});
+        if (r === 2) return { skipped: "cancelado" };
+        mode = r === 0 ? "mesclar" : "sobrescrever";
+      }
       await IOUtils.makeDirectory(outDir, { ignoreExisting: true, createAncestors: true });
 
       const cli = await Z.findCli();
       let cliErr = null;
       if (cli && file) {
-        cliErr = await Z.exportViaCli(cli, file, mdPath, PathUtils.join(outDir, base + "_img"));
+        cliErr = await Z.exportViaCli(cli, file, mdPath, PathUtils.join(outDir, base + "_img"), mode);
         if (cliErr === "") return { path: mdPath, n: anns.length, via: "CLI" };
       }
+
+      if (mode === "mesclar" &&
+          !Services.prompt.confirm(win, "zotobs", "Sem o CLI zotobs não é possível mesclar.\n\nSobrescrever o arquivo? (o que você escreveu nele será perdido)"))
+        return { skipped: "cancelado (mesclar exige o CLI)" };
 
       const imgs = new Map();
       if (pref("export_images")) {

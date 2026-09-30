@@ -112,3 +112,42 @@ def test_parse_export_md():
     assert r["2REKQJJZ"] == {"comment": "linha 1\n\nlinha 3", "tags": set()}
     assert r["W99F7LSA"] == {"comment": "", "tags": {"agente", "a_b"}}
     assert r["QW9UEHTH"]["comment"] == "só isto"
+
+
+def _blk(key, txt="x", cmt=""):
+    L = [f"> [↗](zotero://open-pdf/library/items/ATT12345?page=1&annotation={key}) <i>“{txt}”</i>  "]
+    return L + ([f"> {cmt}"] if cmt else [])
+
+
+def _doc(blocks, page=1):
+    L = ["---", "anotacoes: %d" % len(blocks), "---", "", "# T", "", "_%d highlight_" % len(blocks), "",
+         f"#### p. {page}", "[↗ abrir página](zotero://open-pdf/library/items/ATT12345?page=1)", ""]
+    for b in blocks:
+        L += b + [""]
+    return "\n".join(L)
+
+
+def test_merge_mantem_trechos_do_usuario():
+    import zotero_anot as za
+    a, b, c = _blk("AAAAAAAA"), _blk("BBBBBBBB"), _blk("CCCCCCCC")
+    mine = ["minha observação", "em duas linhas"]
+    old = _doc([a, b, c]).replace("> [↗](zotero://open-pdf/library/items/ATT12345?page=1&annotation=CCCCCCCC)",
+                                  "\n".join(mine) + "\n\n> [↗](zotero://open-pdf/library/items/ATT12345?page=1&annotation=CCCCCCCC)")
+    new = _doc([a, _blk("BBBBBBBB", cmt="comentário novo do Zotero"), c])
+    out, info = za.merge_export(old, new)
+    assert info == {"mantidos": 1, "orfaos": 0}
+    assert "comentário novo do Zotero" in out
+    i_b, i_m, i_c = out.index("BBBBBBBB"), out.index("minha observação"), out.index("CCCCCCCC")
+    assert i_b < i_m < i_c                      # continua entre B e C
+    assert out.count("anotacoes: 3") == 1
+
+
+def test_merge_ancora_removida_usa_proxima_ou_orfao():
+    import zotero_anot as za
+    a, b = _blk("AAAAAAAA"), _blk("BBBBBBBB")
+    old = _doc([a, b]).replace("> [↗](zotero://open-pdf/library/items/ATT12345?page=1&annotation=BBBBBBBB)",
+                               "nota minha\n\n> [↗](zotero://open-pdf/library/items/ATT12345?page=1&annotation=BBBBBBBB)")
+    out, info = za.merge_export(old, _doc([b]))      # A (âncora) foi apagada no Zotero
+    assert out.index("nota minha") < out.index("BBBBBBBB") and info["orfaos"] == 0
+    out, info = za.merge_export(old, _doc([], page=9))   # tudo apagado
+    assert info["orfaos"] == 1 and "nota minha" in out

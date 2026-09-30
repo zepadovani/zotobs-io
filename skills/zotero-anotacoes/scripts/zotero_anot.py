@@ -366,10 +366,155 @@ def cmd_extract(args):
     else:
         text = to_markdown(pdf, meta, att, anns, imgdir, args.saida)
     if args.saida:
-        Path(args.saida).expanduser().write_text(text, encoding="utf-8")
-        print(f"{len(anns)} anotações -> {args.saida}", file=sys.stderr)
+        dst = Path(args.saida).expanduser()
+        extra = ""
+        if dst.exists() and not args.json:
+            old_text = dst.read_text(encoding="utf-8")
+            bk = backup_md(dst)
+            if args.se_existe == "mesclar":
+                edited = [k for k, w in parse_export_md(old_text).items()
+                          if k in (nw := parse_export_md(text)) and w["comment"] != nw[k]["comment"]]
+                text, info = merge_export(old_text, text)
+                extra = f"; mesclado: {info['mantidos']} trechos seus mantidos"
+                if info["orfaos"]:
+                    extra += f", {info['orfaos']} sem âncora (no fim do arquivo)"
+                if edited:
+                    extra += (f"\naviso: {len(edited)} comentário(s) diferem do Zotero ({', '.join(edited)}); "
+                              "o do Zotero prevaleceu — para enviar edições do .md use `sync-md` antes")
+            extra += f"\n(backup da nota anterior: {bk})"
+        dst.write_text(text, encoding="utf-8")
+        if imgdir:
+            gone = clean_orphan_images(imgdir, {a["imagem"] for a in anns if a.get("imagem")})
+            if gone:
+                extra += f"\n{gone} imagem(ns) órfã(s) removida(s) de {imgdir}"
+        print(f"{len(anns)} anotações -> {args.saida}{extra}", file=sys.stderr)
     else:
         print(text)
+
+
+# ------------------------------------------------ mesclar com nota já existente
+_PAGE = re.compile(r"^#{2,4} p\. (\d+)")
+_PAGELINK = re.compile(r"^\[↗ abrir página\]\(zotero://open-pdf/")
+_COUNTS = re.compile(r"^_\d+ .*_$")
+
+
+def _tokenize(text: str):
+    """-> (cabeçalho, [tokens]); token = ('page', n, linhas) | ('block', chave, linhas) | ('text', None, linhas)."""
+    lines = text.split("\n")
+    i = next((k for k, ln in enumerate(lines) if _PAGE.match(ln) or _HEAD.match(ln)), len(lines))
+    head, toks = lines[:i], []
+    while i < len(lines):
+        ln = lines[i]
+        m = _PAGE.match(ln)
+        if m:
+            grp = [ln]
+            i += 1
+            if i < len(lines) and _PAGELINK.match(lines[i]):
+                grp.append(lines[i])
+                i += 1
+            toks.append(("page", int(m.group(1)), grp))
+            continue
+        m = _HEAD.match(ln)
+        if m:
+            grp = [ln]
+            i += 1
+            while i < len(lines) and lines[i].startswith(">"):
+                grp.append(lines[i])
+                i += 1
+            toks.append(("block", m.group(1), grp))
+            continue
+        grp = []
+        while i < len(lines) and not _PAGE.match(lines[i]) and not _HEAD.match(lines[i]):
+            grp.append(lines[i])
+            i += 1
+        while grp and not grp[0].strip():
+            grp.pop(0)
+        while grp and not grp[-1].strip():
+            grp.pop()
+        if grp:
+            toks.append(("text", None, grp))
+    return head, toks
+
+
+def merge_export(old: str, new: str) -> tuple[str, dict]:
+    """Blocos vêm do export novo (Zotero manda); trechos escritos pelo usuário no .md
+    antigo (texto fora dos blocos) são reinseridos depois do bloco que os precedia."""
+    ohead, otoks = _tokenize(old)
+    nhead, ntoks = _tokenize(new)
+    # âncoras dos trechos do usuário: bloco/página anterior e bloco seguinte
+    chunks = []
+    prev = None
+    for n, (kind, ref, lines) in enumerate(otoks):
+        if kind in ("page", "block"):
+            prev = (kind, ref)
+        else:
+            nxt = next((t[1] for t in otoks[n + 1:] if t[0] == "block"), None)
+            chunks.append({"prev": prev, "next": nxt, "lines": lines})
+    new_keys = {t[1] for t in ntoks if t[0] == "block"}
+    new_pages = {t[1] for t in ntoks if t[0] == "page"}
+    after: dict[tuple, list] = {}
+    before: dict[str, list] = {}
+    orphan = []
+    for c in chunks:
+        if c["prev"] and ((c["prev"][0] == "block" and c["prev"][1] in new_keys) or
+                          (c["prev"][0] == "page" and c["prev"][1] in new_pages)):
+            after.setdefault(c["prev"], []).append(c)
+        elif c["next"] in new_keys:
+            before.setdefault(c["next"], []).append(c)
+        else:
+            orphan.append(c)
+    out = []
+    # cabeçalho: mantém o antigo (edições do usuário), atualiza contagem/data com os do novo
+    newvals = {}
+    for ln in nhead:
+        for key in ("anotacoes:", "extraido_em:"):
+            if ln.startswith(key):
+                newvals[key] = ln
+        if _COUNTS.match(ln):
+            newvals["_"] = ln
+    for ln in (ohead or nhead):
+        for key in ("anotacoes:", "extraido_em:"):
+            if ln.startswith(key) and key in newvals:
+                ln = newvals[key]
+        if _COUNTS.match(ln) and "_" in newvals:
+            ln = newvals["_"]
+        out.append(ln)
+    if not ohead:
+        out = list(nhead)
+    while out and not out[-1].strip():
+        out.pop()
+    out.append("")
+    for kind, ref, lines in ntoks:
+        if kind == "block":
+            for c in before.get(ref, []):
+                out += c["lines"] + [""]
+        out += lines + [""]
+        for c in after.get((kind, ref), []) if kind in ("page", "block") else []:
+            out += c["lines"] + [""]
+    if orphan:
+        out += ["#### (trechos sem anotação de origem)", ""]
+        for c in orphan:
+            out += c["lines"] + [""]
+    info = {"mantidos": len(chunks) - len(orphan), "orfaos": len(orphan)}
+    return "\n".join(out).rstrip() + "\n", info
+
+
+def backup_md(path: Path):
+    bk = Path(os.environ.get("ZOTERO_ANOT_BACKUPS", Path.home() / ".cache" / "zotero-anot" / "backups"))
+    bk.mkdir(parents=True, exist_ok=True)
+    dst = bk / f"{dt.datetime.now():%Y%m%d-%H%M%S}-{path.name}"
+    shutil.copy2(path, dst)
+    return dst
+
+
+def clean_orphan_images(imgdir: Path, keep: set[str]):
+    n = 0
+    if imgdir.is_dir():
+        for f in imgdir.iterdir():
+            if re.fullmatch(r"[A-Z0-9]{8}\.png", f.name) and f.name not in keep:
+                f.unlink()
+                n += 1
+    return n
 
 
 def _esc(t: str) -> str:
@@ -435,7 +580,10 @@ def to_markdown(pdf: Path, meta, att, anns, imgdir, saida) -> str:
         if a["pagina"] != page:
             page = a["pagina"]
             lab = f" (impresso: {a['rotulo']})" if a["rotulo"] and str(a["rotulo"]) != str(page) else ""
-            L += [f"## p. {page}{lab}", ""]
+            L.append(f"#### p. {page}{lab}")
+            if att:
+                L.append(f"[↗ abrir página](zotero://open-pdf/library/items/{att['key']}?page={page})")
+            L.append("")
         L += md_block(a, att, imgdir, saida)
     return "\n".join(L).rstrip() + "\n"
 
@@ -989,6 +1137,8 @@ def main():
     e.add_argument("--json", action="store_true", help="saída JSON (bom para agentes)")
     e.add_argument("--tipos", help="filtro: highlight,underline,note,text,image,ink")
     e.add_argument("--paginas", help="faixa de páginas PDF, ex.: 80-90")
+    e.add_argument("--se-existe", choices=["mesclar", "sobrescrever"], default="mesclar",
+                   help="se o .md já existe: mesclar (padrão; mantém o que você escreveu entre os blocos) ou sobrescrever")
     e.add_argument("--imagens", help="pasta onde salvar recortes PNG de anotações image/ink")
     e.set_defaults(fn=cmd_extract)
 

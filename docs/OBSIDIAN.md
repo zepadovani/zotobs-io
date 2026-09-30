@@ -89,3 +89,23 @@ Um bloco de citação por anotação: link `[↗]` para o leitor do Zotero, o tr
 
 Editar o comentário (linhas `> …` abaixo da 1ª) ou as `<small>#tags</small>` e rodar
 `zotobs sync-md` leva a mudança de volta ao Zotero.
+
+### Reexportar sem perder o que você escreveu
+
+Cada página aparece como `#### p. N` seguida de um link para a página. Ao rodar
+`zotobs extract … -o nota.md` de novo sobre uma nota existente (padrão
+`--se-existe mesclar`):
+
+- os blocos de anotação são **atualizados a partir do Zotero** (casados pela
+  chave `annotation=KEY`; anotações novas entram, apagadas saem);
+- qualquer texto seu **fora dos blocos** (entre duas anotações, por exemplo)
+  é mantido e reinserido logo depois do bloco que o precedia; se esse bloco foi
+  apagado, vai para antes do seguinte; sem nenhum dos dois, vai para o fim, sob
+  “trechos sem anotação de origem”;
+- o cabeçalho (frontmatter) é preservado, atualizando só `anotacoes` e `extraido_em`;
+- uma cópia da nota anterior fica em `~/.cache/zotero-anot/backups/`;
+- imagens `CHAVE.png` que não pertencem mais a nenhuma anotação são removidas.
+
+Atenção: o Zotero prevalece sobre os comentários dentro dos blocos. Se você editou
+um comentário no `.md`, rode `zotobs sync-md` **antes** de reexportar (o comando
+avisa quando há diferenças). Use `--se-existe sobrescrever` para recriar o arquivo do zero.
