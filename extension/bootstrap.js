@@ -147,12 +147,51 @@ var ZotobsBridge = {
 
 function install() {}
 function uninstall() {}
+var zotobsRootURI = null, zotobsPaneID = null;
+
+function zotobsAddMenu(win) {
+  const doc = win.document, menu = doc.getElementById("zotero-itemmenu");
+  if (!menu || doc.getElementById("zotobs-menu-sep")) return;
+  const sep = doc.createXULElement("menuseparator");
+  sep.id = "zotobs-menu-sep";
+  const mk = (id, label, mode) => {
+    const mi = doc.createXULElement("menuitem");
+    mi.id = id;
+    mi.setAttribute("label", label);
+    mi.addEventListener("command", () =>
+      Zotero.Zotobs.run(win.ZoteroPane.getSelectedItems(), mode, win));
+    return mi;
+  };
+  menu.append(sep,
+    mk("zotobs-menu-default", "Exportar anotações (pasta padrão)", "default"),
+    mk("zotobs-menu-folder", "Exportar anotações para…", "folder"));
+}
+
+function zotobsRemoveMenu(win) {
+  for (const id of ["zotobs-menu-sep", "zotobs-menu-default", "zotobs-menu-folder"])
+    win.document.getElementById(id)?.remove();
+}
+
 async function startup({ id, version, rootURI }) {
   await Zotero.initializationPromise;
+  zotobsRootURI = rootURI;
+  Services.scriptloader.loadSubScript(rootURI + "export.js");
+  zotobsPaneID = await Zotero.PreferencePanes.register({
+    pluginID: id,
+    src: rootURI + "prefs.xhtml",
+    scripts: [rootURI + "prefs-pane.js"],
+    label: "zotobs",
+  });
+  for (const w of Zotero.getMainWindows()) zotobsAddMenu(w);
   ZotobsBridge.version = version;
   ZotobsBridge.register();
   ZotobsBridge.log("iniciado v" + version);
 }
-function shutdown() { ZotobsBridge.unregister(); }
-function onMainWindowLoad() {}
-function onMainWindowUnload() {}
+function shutdown() {
+  ZotobsBridge.unregister();
+  for (const w of Zotero.getMainWindows()) zotobsRemoveMenu(w);
+  if (zotobsPaneID) Zotero.PreferencePanes.unregister?.(zotobsPaneID);
+  delete Zotero.Zotobs;
+}
+function onMainWindowLoad({ window }) { zotobsAddMenu(window); }
+function onMainWindowUnload({ window }) { zotobsRemoveMenu(window); }

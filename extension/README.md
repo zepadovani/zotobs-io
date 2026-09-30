@@ -1,4 +1,4 @@
-# extension/ — zotobs-bridge (v0.1.0, M0–M3)
+# extension/ — zotobs-bridge (v0.1.0)
 
 Extensão do Zotero 7+ que recebe anotações do CLI em
 `http://127.0.0.1:23119/zotobs/*` e as cria via `Zotero.Annotations.saveFromJSON`
@@ -29,6 +29,21 @@ zotobs sync-md arquivo.pdf notas.md             # grava no Zotero (via /zotobs/u
 ```
 Só comentário e tags; só anotações do anexo indicado. Requer a extensão ≥ 0.1.0
 (reinstale o `.xpi`).
+
+## Exportar anotações para Markdown (v0.1.0)
+
+Botão direito em itens (ou PDFs) → **Exportar anotações (pasta padrão)** ou
+**Exportar anotações para…**. Mesmo formato do `zotobs extract` (o `sync-md`
+funciona sobre ele).
+
+- *Pasta padrão* (Configurações → zotobs): cria
+  `<pasta>/<subpasta do ZotMoov>/<nome do PDF>/<nome do PDF>.md` (+ `<nome>_img/`).
+  O caminho espelha o local real do PDF dentro do `dst_dir` do ZotMoov, então
+  segue o mesmo esquema de nomes sem reimplementar os curingas.
+- *Para…*: escolhe uma pasta e grava direto nela só `<nome>.md` e `<nome>_img/`.
+- Se o `.md` já existe, pergunta antes de sobrescrever (edições no Obsidian).
+- Limite: desenhos (`ink`) saem só com comentário; o texto coberto e o recorte
+  do desenho continuam exclusivos do `zotobs extract`. Imagens de área vêm do cache do Zotero.
 
 ## Segurança
 

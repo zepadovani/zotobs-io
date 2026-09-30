@@ -4,5 +4,5 @@ set -euo pipefail
 cd "$(dirname "$0")"
 mkdir -p build
 rm -f build/zotobs-bridge.xpi
-zip -q -r build/zotobs-bridge.xpi manifest.json bootstrap.js
+zip -q -r build/zotobs-bridge.xpi manifest.json bootstrap.js export.js prefs.js prefs.xhtml prefs-pane.js
 echo "gerado: $(pwd)/build/zotobs-bridge.xpi"
