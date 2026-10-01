@@ -1,4 +1,4 @@
-# extension/ — zotobs-bridge (v0.1.0)
+# extension/ — zotobs-bridge (v0.1.1)
 
 Extensão do Zotero 7+ que recebe anotações do CLI em
 `http://127.0.0.1:23119/zotobs/*` e as cria via `Zotero.Annotations.saveFromJSON`
@@ -29,7 +29,7 @@ zotobs sync-md arquivo.pdf notas.md             # grava no Zotero (via /zotobs/u
 ```
 Só comentário e tags; só anotações do anexo indicado.
 
-## Exportar anotações para Markdown (v0.1.0)
+## Exportar anotações para Markdown (v0.1.1)
 
 Botão direito em itens (ou PDFs) → **zotobs-io: Exportar anotações (pasta padrão)** ou
 **zotobs-io: Exportar anotações para…**. Mesmo formato do `zotobs extract` (o `sync-md`
@@ -48,6 +48,8 @@ precisam ser fechadas e reabertas depois de instalar/atualizar.
   ou `~/repositorios/zotobs-io/bin/zotobs`), o plugin o chama: saem também os recortes
   de desenhos/áreas (com os rabiscos por cima) e o texto coberto por desenhos. Sem
   o CLI, o plugin usa um exportador próprio que deixa os desenhos só com o comentário.
+
+**Compatibilidade plugin ↔ CLI:** o plugin 0.1.1+ chama o CLI com flags em inglês, então exige o CLI atual (`git pull`). O plugin 0.1.0 funciona com qualquer CLI.
 
 ## Segurança
 

@@ -11,7 +11,7 @@
  */
 var ZotobsBridge = {
   id: "zotobs-bridge@zotobs-io",
-  version: "0.1.0",
+  version: "0.1.1",
   MAX_ITEMS: 500,
   endpoints: ["/zotobs/ping", "/zotobs/import", "/zotobs/update"],
 

@@ -89,13 +89,13 @@
           const bat = PathUtils.join(tmp, "zotobs-export.cmd");
           await IOUtils.writeUTF8(bat, "@echo off\r\nchcp 65001 >nul\r\n" +
             'set "PATH=%USERPROFILE%\\.local\\bin;%PATH%"\r\n' +
-            `call ${q(cli)} extract ${q(file)} -o ${q(mdPath)} --imagens ${q(imgDir)} --se-existe ${mode} > ${q(log)} 2>&1\r\n`);
+            `call ${q(cli)} extract ${q(file)} -o ${q(mdPath)} --images ${q(imgDir)} --if-exists ${mode} > ${q(log)} 2>&1\r\n`);
           await Zotero.Utilities.Internal.exec("cmd.exe", ["/d", "/c", bat]);
         } else {
           // macOS (testado: zsh) / Linux (não testado: bash). PATH explícito: o Zotero não herda o do terminal.
           const sh = Zotero.isMac ? "/bin/zsh" : "/bin/bash";
           await Zotero.Utilities.Internal.exec(sh,
-            ["-lc", 'export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"; "$0" extract "$1" -o "$2" --imagens "$3" --se-existe "$5" >"$4" 2>&1',
+            ["-lc", 'export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"; "$0" extract "$1" -o "$2" --images "$3" --if-exists "$5" >"$4" 2>&1',
               cli, file, mdPath, imgDir, log, mode]);
         }
       } catch (e) { Zotero.debug("[zotobs-bridge] CLI: " + e + " (log em " + log + ")"); }
@@ -114,7 +114,7 @@
       if (!anns.length) return { skipped: "sem anotações" };
 
       const mdPath = PathUtils.join(outDir, base + ".md");
-      let mode = "sobrescrever";
+      let mode = "overwrite";
       if (await IOUtils.exists(mdPath)) {
         const S = Services.prompt, F = S.BUTTON_TITLE_IS_STRING;
         const r = S.confirmEx(win, "zotobs",
@@ -123,7 +123,7 @@
           S.BUTTON_POS_0 * F + S.BUTTON_POS_1 * F + S.BUTTON_POS_2 * F,
           "Mesclar (manter o que escrevi)", "Sobrescrever", "Cancelar", null, {});
         if (r === 2) return { skipped: "cancelado" };
-        mode = r === 0 ? "mesclar" : "sobrescrever";
+        mode = r === 0 ? "merge" : "overwrite";
       }
       await IOUtils.makeDirectory(outDir, { ignoreExisting: true, createAncestors: true });
 
@@ -134,7 +134,7 @@
         if (cliErr === "") return { path: mdPath, n: anns.length, via: "CLI" };
       }
 
-      if (mode === "mesclar" &&
+      if (mode === "merge" &&
           !Services.prompt.confirm(win, "zotobs", "Sem o CLI zotobs não é possível mesclar.\n\nSobrescrever o arquivo? (o que você escreveu nele será perdido)"))
         return { skipped: "cancelado (mesclar exige o CLI)" };
 

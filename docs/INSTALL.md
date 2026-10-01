@@ -153,7 +153,7 @@ Para conferir: na lista de plugins aparece **zotobs-bridge**. Clique com o
 botão direito em um item da biblioteca: no fim do menu há
 **“zotobs-io: Exportar anotações …”**.
 
-**Atualizar:** repita o procedimento com o `.xpi` mais novo (ele substitui o
+**Atualizar:** atualize também o comando (`git pull` na pasta do projeto: o plugin e o CLI evoluem juntos) e repita o procedimento com o `.xpi` mais novo (ele substitui o
 antigo). Quando o projeto estiver publicado com releases, o Zotero também
 verifica atualizações sozinho (*Plugins → engrenagem → Check for Updates*).
 

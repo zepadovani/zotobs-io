@@ -1,6 +1,9 @@
 # Changelog
 
-## Não lançado
+## zotobs-bridge 0.1.1 e CLI — 2026-09-30
+- **Plugin 0.1.1:** passa a chamar o CLI com os flags em inglês (`--images`, `--if-exists merge|overwrite`).
+  **Ao atualizar o plugin, atualize também o CLI** (`git pull` na pasta do projeto): o CLI antigo não
+  entende os flags novos. O plugin 0.1.0 continua funcionando com o CLI novo (apelidos mantidos).
 - **Flags do CLI em inglês** (`--output`, `--source`, `--types`, `--pages`, `--images`, `--if-exists`,
   `--dest`, `--author`, `--strict`, `--no-plugin`, `--all`). Os nomes e valores antigos em português
   seguem aceitos como apelidos, então nada quebra. Documentação e testes migrados.
