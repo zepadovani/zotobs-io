@@ -41,7 +41,7 @@ exportação pelo botão direito e pelos botões do leitor de PDF.
 
 **1. Exportar suas anotações de leitura para o Obsidian**
 ```bash
-zotobs extract artigo.pdf -o Vault/artigo.md --imagens Vault/artigo_img
+zotobs extract artigo.pdf -o Vault/artigo.md --images Vault/artigo_img
 ```
 Você recebe um bloco por anotação — o trecho na cor do destaque, um link que
 abre o ponto exato no Zotero e o seu comentário logo abaixo:
@@ -129,8 +129,12 @@ git clone https://github.com/zepadovani/zotobs-io.git ~/repositorios/zotobs-io
 cd ~/repositorios/zotobs-io
 ./install.sh --all                                   # comando `zotobs` + skill para agentes
 zotobs info "/caminho/artigo.pdf"                    # o Zotero reconhece este PDF?
-zotobs extract "/caminho/artigo.pdf" -o notas.md --imagens notas_img
+zotobs extract "/caminho/artigo.pdf" -o notas.md --images notas_img
 ```
+
+Os flags são em inglês (`--output`, `--source`, `--types`, `--pages`, `--images`,
+`--if-exists`, `--dest`, …); os nomes antigos em português (`--saida`, `--fonte`, …)
+continuam funcionando como apelidos. Tabela completa em [docs/USAGE.md](docs/USAGE.md).
 
 Depois instale o plugin (arquivo `.xpi`) no Zotero: *Ferramentas → Plugins →
 engrenagem → Install Plugin From File…*, e escolha a pasta de exportação em
@@ -154,7 +158,7 @@ Requer Zotero 7 ou mais novo. Como relatar um teste em Linux/Windows:
  JSON (agente)            ─┴─►  zotobs add  ──►  1. Plugin zotobs-bridge (local, sem rede, sem chave)
                                                  2. Web API do Zotero    (precisa de chave e rede)
                                                  3. Snippet JS           (colar em Run JavaScript)
-                                                 4. --destino pdf        (embutida no arquivo)
+                                                 4. --dest pdf        (embutida no arquivo)
 ```
 
 Rodar de novo o mesmo arquivo **não duplica**: cada anotação tem chave

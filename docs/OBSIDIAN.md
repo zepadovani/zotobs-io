@@ -3,7 +3,7 @@
 ## 1. Zotero → Obsidian
 
 ```bash
-zotobs extract "/caminho/artigo.pdf" -o "Vault/leituras/artigo.md" --imagens "Vault/leituras/artigo_img"
+zotobs extract "/caminho/artigo.pdf" -o "Vault/leituras/artigo.md" --images "Vault/leituras/artigo_img"
 ```
 
 Você recebe uma nota com YAML (`citekey`, `zotero_item`), uma seção por página
@@ -94,7 +94,7 @@ Editar o comentário (linhas `> …` abaixo da 1ª) ou as `<small>#tags</small>`
 
 Cada página aparece como `#### p. N` seguida de um link para a página. Ao rodar
 `zotobs extract … -o nota.md` de novo sobre uma nota existente (padrão
-`--se-existe mesclar`):
+`--if-exists merge`):
 
 - os blocos de anotação são **atualizados a partir do Zotero** (casados pela
   chave `annotation=KEY`; anotações novas entram, apagadas saem);
@@ -108,4 +108,4 @@ Cada página aparece como `#### p. N` seguida de um link para a página. Ao roda
 
 Atenção: o Zotero prevalece sobre os comentários dentro dos blocos. Se você editou
 um comentário no `.md`, rode `zotobs sync-md` **antes** de reexportar (o comando
-avisa quando há diferenças). Use `--se-existe sobrescrever` para recriar o arquivo do zero.
+avisa quando há diferenças). Use `--if-exists overwrite` para recriar o arquivo do zero.

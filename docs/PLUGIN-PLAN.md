@@ -42,7 +42,7 @@ no `zotero.sqlite`.
 ## Arquitetura
 
 ```
-zotobs add --destino zotero
+zotobs add --dest zotero
    ├─ 1. Web API                       (se houver chave e rede)
    ├─ 2. Plugin local  ◄── novo        (POST http://127.0.0.1:23119/zotobs/import)
    └─ 3. Snippet JS                    (colar em Run JavaScript)

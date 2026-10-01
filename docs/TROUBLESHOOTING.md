@@ -10,7 +10,7 @@ Arquivos e pastas → *Base directory*) e/ou `--zotero-dir`.
 - **Web API:** aperte o botão de sync (setas circulares). Ver também se a
   saída mostrou `[zotero/API] N criadas`.
 - **Snippet JS:** aparecem na hora; feche/reabra a aba do PDF se estava aberta.
-- **`--destino pdf`:** feche e reabra a aba do leitor; anotações embutidas
+- **`--dest pdf`:** feche e reabra a aba do leitor; anotações embutidas
   aparecem como externas (somente leitura) até serem importadas
   (Arquivo → Importar anotações…).
 

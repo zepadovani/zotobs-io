@@ -18,7 +18,7 @@ escolher o `.xpi`. Depois: `zotobs bridge-token` de novo deve mostrar
 ## Uso
 
 `zotobs add …` tenta a extensão primeiro (se houver token e ela responder),
-depois Web API, depois snippet. `--sem-extensao` pula o primeiro passo.
+depois Web API, depois snippet. `--no-plugin` pula o primeiro passo.
 
 ## Editar anotações existentes (M3)
 

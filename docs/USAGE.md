@@ -8,6 +8,28 @@ Opções globais (antes do subcomando): `--zotero-dir` (padrão: lido do
 `prefs.js` do Zotero, ou `~/Zotero`) e `--base-dir` (pasta base de anexos
 vinculados). Variáveis: `ZOTERO_DATA_DIR`, `ZOTERO_BASE_DIR`.
 
+## Nomes dos flags (inglês) e apelidos antigos
+
+Os flags oficiais são em **inglês**. Os nomes antigos em português continuam
+funcionando como apelidos (e os valores `ambas`/`ambos`/`mesclar`/`sobrescrever`
+também), então scripts e instruções antigas não quebram.
+
+| Flag | Apelido antigo | Valores |
+|---|---|---|
+| `-o`, `--output` | `--saida` | arquivo de saída |
+| `--source` | `--fonte` | `auto`, `zotero`, `pdf`, `both` (`ambas`) |
+| `--types` | `--tipos` | `highlight,underline,note,text,image,ink` |
+| `--pages` | `--paginas` | faixa, ex.: `80-90` |
+| `--images` | `--imagens` | pasta dos recortes PNG |
+| `--if-exists` | `--se-existe` | `merge` (`mesclar`), `overwrite` (`sobrescrever`) |
+| `--dest` | `--destino` | `zotero`, `pdf`, `both` (`ambos`) |
+| `--author` | `--autor` | nome gravado nas anotações |
+| `--strict` | `--estrito` | — |
+| `--no-plugin` | `--sem-extensao` | — |
+| `--all` | `--todas` | — |
+
+Os demais (`--json`, `--tag`, `--offline`, `--dry-run`, `--zotero-dir`, `--base-dir`) já eram em inglês.
+
 ## `info` — o Zotero conhece este PDF?
 
 ```bash
@@ -20,10 +42,10 @@ que o Zotero registrou (veja `--base-dir` em [TROUBLESHOOTING](TROUBLESHOOTING.m
 ## `extract` — anotações → Markdown/JSON
 
 ```bash
-zotobs extract artigo.pdf -o notas.md --imagens notas_img
+zotobs extract artigo.pdf -o notas.md --images notas_img
 zotobs extract artigo.pdf --json                       # para agentes
-zotobs extract artigo.pdf --tipos highlight,note --paginas 80-90
-zotobs extract artigo.pdf --fonte zotero               # só banco; pdf = só embutidas
+zotobs extract artigo.pdf --types highlight,note --pages 80-90
+zotobs extract artigo.pdf --source zotero               # só banco; pdf = só embutidas
 ```
 
 O Markdown agrupa por página (com o número **impresso** quando difere do
@@ -42,8 +64,8 @@ Entrada: **Markdown** ([sintaxe](OBSIDIAN.md)) ou **JSON**.
 ```bash
 zotobs add artigo.pdf marcas.md --dry-run     # valida, não grava
 zotobs add artigo.pdf marcas.md               # padrão: nativa no Zotero
-zotobs add artigo.pdf marcas.md --destino pdf     # embutida no PDF
-zotobs add artigo.pdf marcas.md --destino ambos
+zotobs add artigo.pdf marcas.md --dest pdf     # embutida no PDF
+zotobs add artigo.pdf marcas.md --dest both
 cat marcas.json | zotobs add artigo.pdf -     # stdin
 ```
 
@@ -69,8 +91,8 @@ Cores: yellow/amarelo, red/vermelho, green/verde, blue/azul, purple/roxo,
 magenta, orange/laranja, gray/cinza.
 
 Opções úteis: `--tag agente` (tag nas anotações nativas; `''` remove),
-`--autor NOME`, `--estrito` (aborta se algum item falhar), `--saida cópia.pdf`
-(com `--destino pdf`).
+`--author NOME`, `--strict` (aborta se algum item falhar), `--output cópia.pdf`
+(com `--dest pdf`).
 
 ### Como a escrita nativa escolhe o caminho
 
@@ -100,9 +122,9 @@ alternando API e snippet JS.
 
 ```bash
 zotobs embed artigo.pdf                       # anotações do banco → embutidas (inclui desenho/imagem)
-zotobs embed artigo.pdf --saida copia.pdf --tipos highlight,note
+zotobs embed artigo.pdf --output copia.pdf --types highlight,note
 zotobs strip artigo.pdf                       # remove só as embutidas criadas por este projeto
-zotobs strip artigo.pdf --todas               # remove todas as embutidas
+zotobs strip artigo.pdf --all               # remove todas as embutidas
 ```
 Alterações in-place fazem backup em `~/.cache/zotero-anot/backups/`
 (`ZOTERO_ANOT_BACKUPS` muda a pasta). Depois, feche e reabra a aba do PDF no
@@ -123,11 +145,11 @@ introdução os trechos com problema de clareza, com comentários". O agente lê
 PDF, gera o JSON/Markdown, roda `--dry-run`, mostra o resumo e só então grava.
 
 
-## `extract … --se-existe` — reexportar sobre uma nota existente
+## `extract … --if-exists` — reexportar sobre uma nota existente
 
 ```bash
-zotobs extract artigo.pdf -o notas.md --imagens notas_img                 # mescla (padrão)
-zotobs extract artigo.pdf -o notas.md --imagens notas_img --se-existe sobrescrever
+zotobs extract artigo.pdf -o notas.md --images notas_img                 # mescla (padrão)
+zotobs extract artigo.pdf -o notas.md --images notas_img --if-exists overwrite
 ```
 Mesclar atualiza os blocos pelo Zotero e mantém o que você escreveu entre eles
 (ver [OBSIDIAN.md](OBSIDIAN.md)). Uma cópia da nota anterior fica em
@@ -146,5 +168,5 @@ Sincroniza comentário e tags dos blocos exportados por `extract`.
 ```bash
 zotobs bridge-token     # cria o token e diz se o plugin está ativo
 ```
-`add` usa o plugin automaticamente quando ele responde; `--sem-extensao` pula
+`add` usa o plugin automaticamente quando ele responde; `--no-plugin` pula
 essa etapa e vai direto para a Web API/snippet.

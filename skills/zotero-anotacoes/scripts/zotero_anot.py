@@ -11,7 +11,7 @@ Subcomandos:
            embutidas no próprio PDF (feitas em Preview, Skim, Acrobat, ou
            incluídas por este script).
   add      Inclui anotações (JSON ou Markdown do Obsidian). Padrão: nativas no
-           Zotero via Web API (fallback: snippet JS); --destino pdf embute no PDF.
+           Zotero via Web API (fallback: snippet JS); --dest pdf embute no PDF.
   embed    Converte as anotações do banco do Zotero em anotações embutidas no PDF.
   strip    Remove anotações embutidas criadas por este script.
   info     Mostra o item/attachment do Zotero que corresponde a um PDF e
@@ -53,6 +53,11 @@ NAME2HEX = {"yellow": "#ffd400", "red": "#ff6666", "green": "#5fb236",
             "orange": "#f19837", "gray": "#aaaaaa", "grey": "#aaaaaa"}
 NAME2HEX.update({v: k for k, v in ZCOLORS.items()})  # nomes em português
 AUTHOR_DEFAULT = "agente"
+
+
+def _alias(mapping: dict[str, str]):
+    """type= do argparse: aceita os valores antigos em português como apelidos."""
+    return lambda v: mapping.get(v, v)
 
 
 def die(msg: str, code: int = 2):
@@ -317,7 +322,7 @@ def cmd_extract(args):
     doc = pymupdf.open(pdf)
     att = meta = None
     zot: list[dict] = []
-    if args.fonte in ("auto", "zotero", "ambas"):
+    if args.source in ("auto", "zotero", "both"):
         data_dir, base = zotero_dirs(args)
         try:
             con = open_db(data_dir)
@@ -325,22 +330,22 @@ def cmd_extract(args):
             if att:
                 meta = item_meta(con, att["parentItemID"] or att["itemID"])
                 zot = zotero_annotations(con, att)
-            elif args.fonte == "zotero":
+            elif args.source == "zotero":
                 die("este PDF não está registrado como attachment no Zotero (--base-dir correto?)")
         except SystemExit:
             raise
         except Exception as e:
-            if args.fonte == "zotero":
+            if args.source == "zotero":
                 die(f"falha lendo o banco do Zotero: {e}")
             print(f"aviso: banco do Zotero indisponível ({e}); seguindo só com o PDF", file=sys.stderr)
-    emb = pdf_annotations(doc) if args.fonte in ("auto", "pdf", "ambas") else []
-    anns = merge(zot, emb) if args.fonte != "zotero" else zot
+    emb = pdf_annotations(doc) if args.source in ("auto", "pdf", "both") else []
+    anns = merge(zot, emb) if args.source != "zotero" else zot
 
-    if args.tipos:
-        want = {t.strip() for t in args.tipos.split(",")}
+    if args.types:
+        want = {t.strip() for t in args.types.split(",")}
         anns = [a for a in anns if a["tipo"] in want]
-    if args.paginas:
-        lo, _, hi = args.paginas.partition("-")
+    if args.pages:
+        lo, _, hi = args.pages.partition("-")
         lo, hi = int(lo), int(hi or lo)
         anns = [a for a in anns if lo <= a["pagina"] <= hi]
 
@@ -351,8 +356,8 @@ def cmd_extract(args):
                 a["texto_coberto"] = True
 
     imgdir = None
-    if args.imagens:
-        imgdir = Path(args.imagens).expanduser()
+    if args.images:
+        imgdir = Path(args.images).expanduser()
         for a in anns:
             if a["tipo"] in ("image", "ink"):
                 a["imagem"] = render_region(doc, a, imgdir)
@@ -365,14 +370,14 @@ def cmd_extract(args):
     if args.json:
         text = json.dumps({"pdf": str(pdf), "item": meta, "anotacoes": anns}, ensure_ascii=False, indent=2)
     else:
-        text = to_markdown(pdf, meta, att, anns, imgdir, args.saida)
-    if args.saida:
-        dst = Path(args.saida).expanduser()
+        text = to_markdown(pdf, meta, att, anns, imgdir, args.output)
+    if args.output:
+        dst = Path(args.output).expanduser()
         extra = ""
         if dst.exists() and not args.json:
             old_text = dst.read_text(encoding="utf-8")
             bk = backup_md(dst)
-            if args.se_existe == "mesclar":
+            if args.if_exists == "merge":
                 edited = [k for k, w in parse_export_md(old_text).items()
                           if k in (nw := parse_export_md(text)) and w["comment"] != nw[k]["comment"]]
                 text, info = merge_export(old_text, text)
@@ -388,7 +393,7 @@ def cmd_extract(args):
             gone = clean_orphan_images(imgdir, {a["imagem"] for a in anns if a.get("imagem")})
             if gone:
                 extra += f"\n{gone} imagem(ns) órfã(s) removida(s) de {imgdir}"
-        print(f"{len(anns)} anotações -> {args.saida}{extra}", file=sys.stderr)
+        print(f"{len(anns)} anotações -> {args.output}{extra}", file=sys.stderr)
     else:
         print(text)
 
@@ -893,10 +898,10 @@ def add_native(args, doc, anns):
     att = resolve_attachment(con, data_dir, base, Path(args.pdf).expanduser())
     if not att:
         die("este PDF não está registrado como attachment no Zotero (--base-dir correto?)")
-    items = [zn.to_native(doc[a["page"] - 1], a, att["key"], args.autor, args.tag) for a in anns]
+    items = [zn.to_native(doc[a["page"] - 1], a, att["key"], args.author, args.tag) for a in anns]
     reason = None
     key, uid = zn.creds()
-    if not args.sem_extensao:
+    if not args.no_plugin:
         token = zn.bridge_token()
         if token:
             try:
@@ -950,11 +955,11 @@ def add_pdf(args, pdf, doc, anns):
         if a["id"] in have:
             print(f"[pdf/pulado] já existe ({a['id']})")
             continue
-        write_embedded(doc, a, args.autor)
+        write_embedded(doc, a, args.author)
         n += 1
     print(f"[pdf] {n} embutidas")
     if n:
-        save_pdf(doc, pdf, args.saida)
+        save_pdf(doc, pdf, args.output)
     return True
 
 
@@ -980,16 +985,16 @@ def cmd_add(args):
             print(f"[ok] p.{r['page']} {r['type']} {r['id']} -> chave Zotero {__import__('zotero_native').zkey(r['id'])}")
         else:
             print(f"[erro] {r}  <- {json.dumps(s, ensure_ascii=False)[:100]}")
-    print(f"\n{len(anns)} válidas, {n_err} erros | destino: {args.destino}")
+    print(f"\n{len(anns)} válidas, {n_err} erros | destino: {args.dest}")
     if args.dry_run or not anns:
         print("(nada gravado)")
         sys.exit(1 if n_err and not anns else 0)
-    if n_err and args.estrito:
-        die("--estrito: há erros; nada gravado", 1)
+    if n_err and args.strict:
+        die("--strict: há erros; nada gravado", 1)
     ok = True
-    if args.destino in ("zotero", "ambos"):
+    if args.dest in ("zotero", "both"):
         ok = add_native(args, doc, anns) and ok
-    if args.destino in ("pdf", "ambos"):
+    if args.dest in ("pdf", "both"):
         ok = add_pdf(args, pdf, doc, anns) and ok
     if n_err or not ok:
         sys.exit(1)
@@ -1089,8 +1094,8 @@ def cmd_embed(args):
     if not att:
         die("este PDF não está registrado como attachment no Zotero")
     zs = zotero_annotations(con, att)
-    if args.tipos:
-        want = {t.strip() for t in args.tipos.split(",")}
+    if args.types:
+        want = {t.strip() for t in args.types.split(",")}
         zs = [z for z in zs if z["tipo"] in want]
     doc = pymupdf.open(pdf)
     have = existing_ids(doc)
@@ -1103,7 +1108,7 @@ def cmd_embed(args):
             n += 1
     print(f"{n} anotações do Zotero embutidas no PDF ({len(zs) - n} já existiam/puladas)")
     if n:
-        save_pdf(doc, pdf, args.saida)
+        save_pdf(doc, pdf, args.output)
 
 
 def cmd_strip(args):
@@ -1117,12 +1122,12 @@ def cmd_strip(args):
                 nm = doc.xref_get_key(a.xref, "NM")[1].strip("()")
             except Exception:
                 nm = ""
-            if nm.startswith("zotanot-") or args.todas:
+            if nm.startswith("zotanot-") or args.all_:
                 page.delete_annot(a)
                 n += 1
     print(f"{n} anotações embutidas removidas")
     if n and not args.dry_run:
-        save_pdf(doc, pdf, args.saida)
+        save_pdf(doc, pdf, args.output)
 
 
 # ------------------------------------------------------------------ main
@@ -1134,43 +1139,44 @@ def main():
 
     e = sub.add_parser("extract", help="anotações -> Markdown/JSON")
     e.add_argument("pdf")
-    e.add_argument("-o", "--saida", help="arquivo .md (ou .json com --json); padrão: stdout")
-    e.add_argument("--fonte", choices=["auto", "zotero", "pdf", "ambas"], default="auto",
-                   help="auto/ambas = banco do Zotero + anotações embutidas (sem duplicar)")
+    e.add_argument("-o", "--output", "--saida", dest="output", help="arquivo .md (ou .json com --json); padrão: stdout")
+    e.add_argument("--source", "--fonte", dest="source", type=_alias({"ambas": "both"}), choices=["auto", "zotero", "pdf", "both"], default="auto",
+                   help="auto/both = banco do Zotero + anotações embutidas (sem duplicar)")
     e.add_argument("--json", action="store_true", help="saída JSON (bom para agentes)")
-    e.add_argument("--tipos", help="filtro: highlight,underline,note,text,image,ink")
-    e.add_argument("--paginas", help="faixa de páginas PDF, ex.: 80-90")
-    e.add_argument("--se-existe", choices=["mesclar", "sobrescrever"], default="mesclar",
-                   help="se o .md já existe: mesclar (padrão; mantém o que você escreveu entre os blocos) ou sobrescrever")
-    e.add_argument("--imagens", help="pasta onde salvar recortes PNG de anotações image/ink")
+    e.add_argument("--types", "--tipos", dest="types", help="filtro: highlight,underline,note,text,image,ink")
+    e.add_argument("--pages", "--paginas", dest="pages", help="faixa de páginas PDF, ex.: 80-90")
+    e.add_argument("--if-exists", "--se-existe", dest="if_exists", type=_alias({"mesclar": "merge", "sobrescrever": "overwrite"}),
+                   choices=["merge", "overwrite"], default="merge",
+                   help="se o .md já existe: merge (padrão; mantém o que você escreveu entre os blocos) ou overwrite")
+    e.add_argument("--images", "--imagens", dest="images", help="pasta onde salvar recortes PNG de anotações image/ink")
     e.set_defaults(fn=cmd_extract)
 
     a = sub.add_parser("add", help="inclui anotações (JSON ou Markdown do Obsidian)")
     a.add_argument("pdf")
     a.add_argument("spec", help="arquivo .json ou .md com as anotações, ou - para stdin")
-    a.add_argument("--destino", choices=["zotero", "pdf", "ambos"], default="zotero",
+    a.add_argument("--dest", "--destino", dest="dest", type=_alias({"ambos": "both"}), choices=["zotero", "pdf", "both"], default="zotero",
                    help="zotero (padrão): anotação nativa via Web API, com fallback JS; pdf: embutida no arquivo")
     a.add_argument("--offline", action="store_true", help="não usa a API: gera o snippet JS para colar no Zotero")
-    a.add_argument("--sem-extensao", action="store_true",
+    a.add_argument("--no-plugin", "--sem-extensao", dest="no_plugin", action="store_true",
                    help="não tenta a extensão zotobs-bridge (vai direto para Web API/snippet)")
     a.add_argument("--tag", default="agente", help="tag aplicada às anotações nativas ('' = nenhuma)")
-    a.add_argument("--autor", default=AUTHOR_DEFAULT, help="nome do autor gravado nas anotações")
+    a.add_argument("--author", "--autor", dest="author", default=AUTHOR_DEFAULT, help="nome do autor gravado nas anotações")
     a.add_argument("--dry-run", action="store_true", help="só valida/mostra o que faria")
-    a.add_argument("--estrito", action="store_true", help="não grava nada se alguma spec falhar")
-    a.add_argument("--saida", help="(destino pdf) grava numa cópia em vez de alterar o PDF original")
+    a.add_argument("--strict", "--estrito", dest="strict", action="store_true", help="não grava nada se alguma spec falhar")
+    a.add_argument("--output", "--saida", dest="output", help="(dest pdf) grava numa cópia em vez de alterar o PDF original")
     a.set_defaults(fn=cmd_add)
 
     m = sub.add_parser("embed", help="converte anotações do Zotero em anotações embutidas no PDF")
     m.add_argument("pdf")
-    m.add_argument("--tipos", help="filtro: highlight,underline,note,text,image,ink")
-    m.add_argument("--saida", help="grava numa cópia em vez de alterar o PDF original")
+    m.add_argument("--types", "--tipos", dest="types", help="filtro: highlight,underline,note,text,image,ink")
+    m.add_argument("--output", "--saida", dest="output", help="grava numa cópia em vez de alterar o PDF original")
     m.set_defaults(fn=cmd_embed)
 
     r = sub.add_parser("strip", help="remove anotações embutidas (padrão: só as criadas por este script)")
     r.add_argument("pdf")
-    r.add_argument("--todas", action="store_true", help="remove TODAS as anotações embutidas")
+    r.add_argument("--all", "--todas", dest="all_", action="store_true", help="remove TODAS as anotações embutidas")
     r.add_argument("--dry-run", action="store_true")
-    r.add_argument("--saida")
+    r.add_argument("--output", "--saida", dest="output")
     r.set_defaults(fn=cmd_strip)
 
     sy = sub.add_parser("sync-md", help="envia ao Zotero edições de comentário/tags feitas na nota exportada (.md)")

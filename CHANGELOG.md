@@ -1,5 +1,10 @@
 # Changelog
 
+## Não lançado
+- **Flags do CLI em inglês** (`--output`, `--source`, `--types`, `--pages`, `--images`, `--if-exists`,
+  `--dest`, `--author`, `--strict`, `--no-plugin`, `--all`). Os nomes e valores antigos em português
+  seguem aceitos como apelidos, então nada quebra. Documentação e testes migrados.
+
 ## zotobs-bridge 0.1.0 (plugin) e novidades do CLI — 2026-09-30
 - **Plugin `zotobs-bridge` para o Zotero 7+** (`extension/`): recebe anotações do CLI
   por endpoint local com token (`/zotobs/import`, `/zotobs/update`), exporta anotações para

@@ -11,12 +11,14 @@ sem instalar nada global: `uv run --script` baixa `pymupdf` sozinho. Sem `uv`:
 Abreviação: `Z=~/.claude/skills/zotero-anotacoes/scripts/zotero_anot.py`
 (em outros agentes, use o caminho onde a skill estiver instalada).
 
+> **Flags:** use os nomes em inglês (`--output`, `--source`, `--types`, `--pages`, `--images`, `--if-exists`, `--dest`, `--author`, `--strict`, `--no-plugin`, `--all`). Os antigos em português (`--saida`, `--fonte`…) ainda funcionam como apelidos. Tabela em docs/USAGE.md.
+
 ## Modelo mental
 
 | Onde vive a anotação | Como nasce | Como sai |
 |---|---|---|
 | **Banco do Zotero** (nativa; o leitor do Zotero grava aqui) | leitor do Zotero; `add` (padrão) | `extract` |
-| **Dentro do PDF** (embutida; Preview/Skim/Acrobat/leitores externos) | `add --destino pdf`, `embed` | `extract` |
+| **Dentro do PDF** (embutida; Preview/Skim/Acrobat/leitores externos) | `add --dest pdf`, `embed` | `extract` |
 
 - **Padrão = nativa.** O script **nunca escreve em `zotero.sqlite`**; usa a Web
   API do Zotero ou o snippet JS (abaixo).
@@ -28,11 +30,11 @@ Abreviação: `Z=~/.claude/skills/zotero-anotacoes/scripts/zotero_anot.py`
 ## Extrair → Markdown (Zotero/PDF → Obsidian)
 
 ```bash
-uv run --script $Z extract "/caminho/arquivo.pdf" -o notas.md --imagens notas_img
+uv run --script $Z extract "/caminho/arquivo.pdf" -o notas.md --images notas_img
 ```
 
-Opções: `--json`, `--fonte auto|zotero|pdf|ambas`, `--tipos highlight,note,ink`,
-`--paginas 80-90`, `--imagens DIR`. Saída agrupada por página (com página
+Opções: `--json`, `--source auto|zotero|pdf|both`, `--types highlight,note,ink`,
+`--pages 80-90`, `--images DIR`. Saída agrupada por página (com página
 impressa), cor, texto (`>`), comentário e link `zotero://open-pdf/...` que
 abre o leitor na anotação; YAML com `citekey`/`zotero_item`.
 Desenhos: o PNG traz o traço por cima; se está na margem, o texto das linhas
@@ -72,8 +74,8 @@ gray (ou amarelo, vermelho, verde, azul, roxo, magenta, laranja, cinza; ou `#rrg
 ```bash
 uv run --script $Z add arquivo.pdf marcas.md --dry-run     # valida, não grava
 uv run --script $Z add arquivo.pdf marcas.md               # nativa no Zotero (padrão)
-uv run --script $Z add arquivo.pdf marcas.md --destino pdf # embutida no PDF (backup + gravação incremental)
-uv run --script $Z add arquivo.pdf marcas.md --destino ambos
+uv run --script $Z add arquivo.pdf marcas.md --dest pdf # embutida no PDF (backup + gravação incremental)
+uv run --script $Z add arquivo.pdf marcas.md --dest both
 ```
 
 ### Como a escrita nativa funciona
@@ -90,20 +92,20 @@ uv run --script $Z add arquivo.pdf marcas.md --destino ambos
 - **Idempotente**: cada anotação tem chave Zotero determinística; reenviar o
   mesmo arquivo pula o que existe, mesmo alternando API e JS.
 - As anotações nativas recebem a tag `agente` (`--tag ''` remove) e autor
-  `--autor`.
+  `--author`.
 - Erros por item (texto não achado, ocorrência ambígua) são listados e não
-  derrubam o lote; `--estrito` aborta se houver qualquer erro.
+  derrubam o lote; `--strict` aborta se houver qualquer erro.
 
 ## Converter Zotero → PDF embutido, e limpar
 
 ```bash
 uv run --script $Z embed arquivo.pdf            # todas as anotações do banco viram embutidas (inclui ink/imagem)
-uv run --script $Z embed arquivo.pdf --saida copia.pdf --tipos highlight,note
+uv run --script $Z embed arquivo.pdf --output copia.pdf --types highlight,note
 uv run --script $Z strip arquivo.pdf            # remove só as embutidas criadas por este script
-uv run --script $Z strip arquivo.pdf --todas    # remove todas as embutidas
+uv run --script $Z strip arquivo.pdf --all    # remove todas as embutidas
 ```
 Alterações in-place fazem backup em `~/.cache/zotero-anot/backups/`
-(`ZOTERO_ANOT_BACKUPS` muda a pasta); `--saida` grava numa cópia. Depois de
+(`ZOTERO_ANOT_BACKUPS` muda a pasta); `--output` grava numa cópia. Depois de
 alterar o PDF, feche e reabra a aba dele no Zotero. Anotações embutidas por
 outros programas podem ser trazidas ao banco no próprio Zotero:
 Arquivo > Importar anotações… (no leitor).

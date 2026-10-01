@@ -5,7 +5,7 @@
 | Local | Quem cria | Como o projeto acessa |
 |---|---|---|
 | **Banco `zotero.sqlite`** (tabela `itemAnnotations`) — anotações nativas | leitor do Zotero | leitura por **cópia** do banco (+WAL) em cache; escrita **nunca** direta |
-| **Dentro do PDF** (objetos `/Annot`) — anotações embutidas | Preview, Skim, Acrobat… e `--destino pdf`/`embed` | PyMuPDF |
+| **Dentro do PDF** (objetos `/Annot`) — anotações embutidas | Preview, Skim, Acrobat… e `--dest pdf`/`embed` | PyMuPDF |
 
 O Zotero mantém o banco travado enquanto aberto, então `extract` trabalha
 numa cópia (`$TMPDIR/zotero_anot_cache`), refeita quando o original muda.

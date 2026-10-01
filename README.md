@@ -44,7 +44,7 @@ export through right-click and the PDF-reader buttons.
 
 **1. Export your reading annotations to Obsidian**
 ```bash
-zotobs extract paper.pdf -o Vault/paper.md --imagens Vault/paper_img
+zotobs extract paper.pdf -o Vault/paper.md --images Vault/paper_img
 ```
 You get one block per annotation — the quoted passage in the highlight colour,
 a link that opens the exact spot in Zotero, and your comment right below:
@@ -131,8 +131,12 @@ git clone https://github.com/zepadovani/zotobs-io.git ~/repositorios/zotobs-io
 cd ~/repositorios/zotobs-io
 ./install.sh --all                                   # `zotobs` command + agent skill
 zotobs info "/path/to/paper.pdf"                     # does Zotero recognise this PDF?
-zotobs extract "/path/to/paper.pdf" -o notes.md --imagens notes_img
+zotobs extract "/path/to/paper.pdf" -o notes.md --images notes_img
 ```
+
+Flags are in English (`--output`, `--source`, `--types`, `--pages`, `--images`,
+`--if-exists`, `--dest`, …); the old Portuguese names (`--saida`, `--fonte`, …)
+still work as aliases. Full table in [docs/USAGE.md](docs/USAGE.md).
 
 **What is `uv`?** A free tool that runs Python scripts and installs what they
 need (here, the `pymupdf` PDF library) in isolation, without touching your
@@ -151,7 +155,7 @@ Install Plugin From File…*, and pick the export folder in
  JSON (agent)             ─┴─►  zotobs add  ──►  1. zotobs-bridge plugin (local, no network, no key)
                                                  2. Zotero Web API       (needs key and network)
                                                  3. JS snippet           (paste into Run JavaScript)
-                                                 4. --destino pdf        (embedded in the file)
+                                                 4. --dest pdf        (embedded in the file)
 ```
 
 Running the same file again **does not duplicate** anything: each annotation

@@ -1,4 +1,4 @@
-"""Teste de ida e volta com PDF sintético: add -> extract --fonte pdf --json.
+"""Teste de ida e volta com PDF sintético: add -> extract --source pdf --json.
 
 Rodar:  uv run --with pymupdf --with pytest pytest tests/ -q
 """
@@ -35,9 +35,9 @@ def test_roundtrip(tmp_path):
         {"page": 1, "type": "note", "comment": "nota"},
         {"page": 1, "type": "highlight", "text": "inexistente"},
     ]))
-    r = run("add", str(pdf), str(spec), "--destino", "pdf", "--saida", str(tmp_path / "b.pdf"))
+    r = run("add", str(pdf), str(spec), "--dest", "pdf", "--output", str(tmp_path / "b.pdf"))
     assert "[pdf] 3 embutidas" in r.stdout and "1 erros" in r.stdout
-    out = run("extract", str(tmp_path / "b.pdf"), "--fonte", "pdf", "--json")
+    out = run("extract", str(tmp_path / "b.pdf"), "--source", "pdf", "--json")
     anns = json.loads(out.stdout)["anotacoes"]
     assert {a["tipo"] for a in anns} == {"highlight", "underline", "note"}
     h = next(a for a in anns if a["tipo"] == "highlight")
@@ -52,8 +52,8 @@ def test_idempotente(tmp_path):
     env_bk = {"ZOTERO_ANOT_BACKUPS": str(tmp_path / "bk")}
     import os
     os.environ.update(env_bk)
-    assert "[pdf] 1 embutidas" in run("add", str(pdf), str(spec), "--destino", "pdf").stdout
-    assert "pulado" in run("add", str(pdf), str(spec), "--destino", "pdf").stdout
+    assert "[pdf] 1 embutidas" in run("add", str(pdf), str(spec), "--dest", "pdf").stdout
+    assert "pulado" in run("add", str(pdf), str(spec), "--dest", "pdf").stdout
 
 
 def test_markdown_e_native_offline(tmp_path):
@@ -84,7 +84,20 @@ def test_strip(tmp_path):
     make_pdf(str(pdf))
     spec = tmp_path / "s.json"
     spec.write_text(json.dumps([{"page": 1, "type": "note", "comment": "x"}]))
-    run("add", str(pdf), str(spec), "--destino", "pdf", "--saida", str(tmp_path / "b.pdf"))
-    r = run("strip", str(tmp_path / "b.pdf"), "--saida", str(tmp_path / "c.pdf"))
+    run("add", str(pdf), str(spec), "--dest", "pdf", "--output", str(tmp_path / "b.pdf"))
+    r = run("strip", str(tmp_path / "b.pdf"), "--output", str(tmp_path / "c.pdf"))
     assert "1 anotações embutidas removidas" in r.stdout
     assert all(not list(p.annots() or []) for p in pymupdf.open(str(tmp_path / "c.pdf")))
+
+
+def test_flags_em_portugues_continuam_funcionando(tmp_path):
+    """Compatibilidade: apelidos antigos (--destino pdf, --saida, --fonte) e valores (ambos/ambas)."""
+    pdf, spec = tmp_path / "a.pdf", tmp_path / "m.json"
+    make_pdf(pdf)
+    spec.write_text(json.dumps([{"page": 2, "type": "highlight", "text": "timbre do tom-tom", "comment": "c"}]))
+    r = run("add", str(pdf), str(spec), "--destino", "pdf", "--saida", str(tmp_path / "b.pdf"))
+    assert "[pdf] 1 embutidas" in r.stdout
+    out = run("extract", str(tmp_path / "b.pdf"), "--fonte", "pdf", "--json")
+    assert json.loads(out.stdout)["anotacoes"]
+    assert run("extract", str(tmp_path / "b.pdf"), "--fonte", "ambas", "--json").returncode == 0
+    assert run("add", str(pdf), str(spec), "--destino", "ambos", "--dry-run").returncode == 0
