@@ -27,8 +27,7 @@ zotobs extract arquivo.pdf -o notas.md     # edite o comentário (linhas "> ..."
 zotobs sync-md arquivo.pdf notas.md --dry-run   # mostra o que mudou
 zotobs sync-md arquivo.pdf notas.md             # grava no Zotero (via /zotobs/update)
 ```
-Só comentário e tags; só anotações do anexo indicado. Requer a extensão ≥ 0.1.0
-(reinstale o `.xpi`).
+Só comentário e tags; só anotações do anexo indicado.
 
 ## Exportar anotações para Markdown (v0.1.0)
 

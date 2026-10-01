@@ -5,7 +5,7 @@
         {
           "version": "0.1.0",
           "update_link": "https://github.com/zepadovani/zotobs-io/releases/download/v0.1.0/zotobs-bridge-0.1.0.xpi",
-          "update_hash": "sha256:fe5781ce8be20e227f53cebefa9d3238bf540022276415e5289202bb77c57354",
+          "update_hash": "sha256:298e8b0f9cb2fb6d38e02b09a2d73c95177690be5380b1b7b99623442e2e2b8e",
           "applications": {
             "zotero": {
               "strict_min_version": "6.999"

@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0 — 2026-09-30
+## zotobs-bridge 0.1.0 (plugin) e novidades do CLI — 2026-09-30
 - **Plugin `zotobs-bridge` para o Zotero 7+** (`extension/`): recebe anotações do CLI
   por endpoint local com token (`/zotobs/import`, `/zotobs/update`), exporta anotações para
   Markdown (menu do botão direito, botões e menu no leitor de PDF, painel de
@@ -17,7 +17,7 @@
   (`wl-copy`/`xclip`/`clip`).
 - Documentação de instalação reescrita para iniciantes (instalação do `uv`, por sistema).
 
-## 0.1.0 — 2026-09-30
+## CLI 0.1.0 — 2026-09-30
 - extract: banco do Zotero + anotações embutidas, Markdown/JSON, imagens com o
   traço, texto coberto por desenhos na margem, links `zotero://`.
 - add: anotações nativas via Web API (padrão) com fallback para snippet JS

@@ -1060,7 +1060,7 @@ def cmd_sync_md(args):
     try:
         res = zn.update_bridge(token, att["libraryID"], att["key"], changes)
     except zn.ApiError as e:
-        die(f"{e} (a extensão v0.1.0+ está instalada e o Zotero aberto?)")
+        die(f"{e} (a extensão está instalada, atualizada, e o Zotero aberto?)")
     print(f"[zotero/extensão] {len(res['atualizadas'])} atualizadas, {len(res['inalteradas'])} inalteradas, {len(res['falhas'])} falhas")
     for f in res["falhas"]:
         print("  falha:", f)
