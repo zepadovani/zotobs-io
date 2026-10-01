@@ -4,7 +4,7 @@
 
 Anotações do **Zotero** ⇄ **Markdown/Obsidian**, nos dois sentidos, com um
 **plugin para o Zotero** e um **comando de terminal** (`zotobs`) que também
-pode ser usado por agentes de IA (Claude Code, opencode, Gemini/Antigravity).
+pode ser usado por agentes de IA (qualquer agente que execute comandos de shell).
 
 - **Exportar** destaques, sublinhados, notas, texto livre, imagens e desenhos
   (com o texto que o desenho cobre e o recorte da página com o rabisco) do
@@ -24,29 +24,87 @@ pode ser usado por agentes de IA (Claude Code, opencode, Gemini/Antigravity).
 ## Como se diferencia do obsidian-zotero-integration
 
 O [obsidian-zotero-integration](https://github.com/obsidian-community/obsidian-zotero-integration)
-(hoje mantido em `community-archive/`) é um **plugin do Obsidian** muito usado
-para inserir citações e bibliografias e para importar notas e anotações de PDF
-do Zotero para o Obsidian; segundo o README dele, exige o Better BibTeX. É o
-caminho certo se você quer **buscar e citar referências de dentro do Obsidian**.
+é um plugin do Obsidian para **citar e importar referências** (e, em mão
+única, anotações) de dentro do Obsidian. O zotobs-io trata das **anotações em
+si**: roda no Zotero e no terminal, funciona **nos dois sentidos** (cria e
+edita anotações nativas do Zotero), **mescla** reexportações com notas que você
+editou, captura desenhos e áreas de imagem e pode ser operado por um agente.
+Eles se complementam; use os dois se quiser.
 
-O zotobs-io resolve outro problema e os dois se complementam:
+## Casos de uso
 
-| | obsidian-zotero-integration | zotobs-io |
-|---|---|---|
-| Onde roda | dentro do Obsidian | dentro do **Zotero** (plugin) e no **terminal** (CLI/agentes); o Obsidian só precisa abrir arquivos `.md` |
-| Foco | citações, bibliografias, notas de leitura e importação de anotações para o Obsidian | o **ciclo das anotações** entre Zotero e Markdown |
-| Direção | Zotero → Obsidian (conforme o README do projeto) | Zotero → Markdown **e** Markdown → Zotero |
-| Escreve no Zotero | não descrito | sim: cria anotações nativas e edita comentário/tags de existentes |
-| Reimportar sobre nota editada | — | **mescla**: atualiza os blocos e mantém o que você escreveu entre eles |
-| Desenhos e imagens | — | recorte da página com o rabisco por cima e o texto coberto pelo desenho |
-| Automação por IA | — | comando determinístico + *skill* para agentes |
-| Depende de Better BibTeX | sim (README do projeto) | não |
-| Funciona sem Obsidian | não | sim (qualquer editor de Markdown) |
+Os comandos abaixo supõem o atalho `zotobs` instalado
+([docs/INSTALL.md](docs/INSTALL.md)). No Zotero, o plugin faz a mesma
+exportação pelo botão direito e pelos botões do leitor de PDF.
 
-Em resumo: use o obsidian-zotero-integration para **citar e importar
-referências**; use o zotobs-io quando as **anotações** são o material de
-trabalho — para revisá-las, comentá-las no Obsidian, devolvê-las ao Zotero ou
-entregá-las a um agente. Nada impede usar os dois juntos.
+### Sem agente
+
+**1. Exportar suas anotações de leitura para o Obsidian**
+```bash
+zotobs extract artigo.pdf -o Vault/artigo.md --imagens Vault/artigo_img
+```
+Você recebe um bloco por anotação — o trecho na cor do destaque, um link que
+abre o ponto exato no Zotero e o seu comentário logo abaixo:
+
+```markdown
+#### p. 12
+> [↗](zotero://open-pdf/…) <span style="background:#ffd40066;"><i>“o trecho citado”</i></span>
+> meu comentário
+```
+
+**2. Continuar escrevendo na nota e reexportar depois.** Acrescente parágrafos
+seus entre os blocos, anote mais no Zotero e rode o mesmo comando (ou o botão
+do plugin) de novo: escolha **Mesclar** e os blocos são atualizados enquanto o
+que você escreveu entre eles fica no lugar.
+
+**3. Anotar no Obsidian e enviar ao Zotero.** Sob o título de uma página,
+escreva um trecho que exista nela, `::` e o seu comentário:
+```markdown
+## p. 3
+> trecho literal da página :: por que importa {verde}
+- :: comentário geral sobre esta página {laranja}
+```
+```bash
+zotobs add artigo.pdf notas.md --dry-run   # confere se todos os trechos são achados
+zotobs add artigo.pdf notas.md             # cria anotações nativas no Zotero
+```
+Rodar de novo não cria duplicatas.
+
+**4. Editar comentários no Obsidian e devolver as edições.** Altere um
+comentário ou uma `#tag` na nota exportada e rode:
+```bash
+zotobs sync-md artigo.pdf Vault/artigo.md --dry-run
+zotobs sync-md artigo.pdf Vault/artigo.md
+```
+
+### Com agente
+
+Dê a qualquer agente que execute comandos de shell as instruções de
+[`skills/zotero-anotacoes/SKILL.md`](skills/zotero-anotacoes/SKILL.md) e peça
+em linguagem natural. O agente só roda os mesmos comandos determinísticos,
+então você sempre pode prever (`--dry-run`) e revisar antes de algo chegar ao Zotero.
+
+**5. Perguntar sobre as suas próprias anotações**
+> “Resuma meus destaques e comentários em `artigo.pdf`, agrupados por tema, e
+> liste as dúvidas que deixei em aberto.”
+
+O agente lê as anotações com `zotobs extract artigo.pdf --json`.
+
+**6. Deixar o agente anotar o artigo por você**
+> “Leia `artigo.pdf` e destaque as passagens que definem o método principal,
+> com um comentário de uma linha em cada.”
+
+O agente escreve as anotações no formato Markdown/JSON do `zotobs add`, valida
+com `--dry-run` e, com a sua concordância, as cria no Zotero. Elas recebem por
+padrão a tag `agente`, para você filtrar, revisar ou apagar exatamente o que o
+agente adicionou.
+
+**7. Ciclo de revisão entre você e um agente**
+> “Escreva um rascunho de comentário para cada destaque meu que está sem
+> comentário, na nota exportada.”
+
+Você lê os rascunhos no Obsidian, edita o que quiser e os envia ao Zotero com
+`zotobs sync-md`.
 
 ## Comece por aqui
 

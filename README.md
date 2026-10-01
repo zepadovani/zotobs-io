@@ -4,7 +4,7 @@
 
 Zotero **annotations** ⇄ **Markdown/Obsidian**, in both directions, with a
 **Zotero plugin** and a **command-line tool** (`zotobs`) that AI agents
-(Claude Code, opencode, Gemini/Antigravity) can drive too.
+(any agent that can run shell commands) can drive too.
 
 - **Export** highlights, underlines, notes, free text, image areas and ink
   drawings from the Zotero reader to Markdown/JSON. Ink annotations come with
@@ -27,30 +27,87 @@ Zotero **annotations** ⇄ **Markdown/Obsidian**, in both directions, with a
 ## How it differs from obsidian-zotero-integration
 
 [obsidian-zotero-integration](https://github.com/obsidian-community/obsidian-zotero-integration)
-(now maintained under `community-archive/`) is an **Obsidian plugin** widely
-used to insert citations and bibliographies and to import notes and PDF
-annotations from Zotero into Obsidian. According to its README it requires
-Better BibTeX. It is the right tool if you want to **search and cite
-references from inside Obsidian**.
+is an Obsidian plugin for **citing and importing references** (and, one way,
+annotations) from inside Obsidian. zotobs-io is about the **annotations
+themselves**: it runs in Zotero and the terminal, goes **both ways** (it can
+create and edit native Zotero annotations), **merges** re-exports with notes
+you have edited, captures ink and image areas, and can be driven by an agent.
+They complement each other; use both if you like.
 
-zotobs-io solves a different problem, and the two complement each other:
+## Use cases
 
-|                                  | obsidian-zotero-integration                                                   | zotobs-io                                                                                      |
-| -------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Runs in                          | Obsidian                                                                      | **Zotero** (plugin) and the **terminal** (CLI/agents); Obsidian only needs to open `.md` files |
-| Focus                            | citations, bibliographies, reading notes, importing annotations into Obsidian | the **life cycle of annotations** between Zotero and Markdown                                  |
-| Direction                        | Zotero → Obsidian (per the project's README)                                  | Zotero → Markdown **and** Markdown → Zotero                                                    |
-| Writes to Zotero                 | not described                                                                 | yes: creates native annotations, edits comments/tags of existing ones                          |
-| Re-importing over an edited note | —                                                                             | **merge**: refreshes the blocks, keeps what you wrote between them                             |
-| Ink and image areas              | —                                                                             | page crop with the drawing on top, plus the text under the drawing                             |
-| AI automation                    | —                                                                             | deterministic CLI + agent *skill*                                                              |
-| Requires Better BibTeX           | yes (per the project's README)                                                | no                                                                                             |
-| Works without Obsidian           | no                                                                            | yes (any Markdown editor)                                                                      |
+Commands below assume the `zotobs` shortcut is installed
+([docs/INSTALL.md](docs/INSTALL.md)). In Zotero, the plugin offers the same
+export through right-click and the PDF-reader buttons.
 
-In short: use obsidian-zotero-integration to **cite and import references**;
-use zotobs-io when **annotations are the working material** — to review them,
-comment on them in Obsidian, send them back to Zotero or hand them to an
-agent. Nothing stops you from using both.
+### Without an agent
+
+**1. Export your reading annotations to Obsidian**
+```bash
+zotobs extract paper.pdf -o Vault/paper.md --imagens Vault/paper_img
+```
+You get one block per annotation — the quoted passage in the highlight colour,
+a link that opens the exact spot in Zotero, and your comment right below:
+
+```markdown
+#### p. 12
+> [↗](zotero://open-pdf/…) <span style="background:#ffd40066;"><i>“the quoted passage”</i></span>
+> my comment
+```
+
+**2. Keep writing in the note and re-export later.** Add your own paragraphs
+between the blocks, annotate more in Zotero, and run the same command (or the
+plugin button) again: choose **Merge** and the blocks are refreshed while what
+you wrote between them stays in place.
+
+**3. Annotate from Obsidian and send it to Zotero.** Write, under a page
+heading, an excerpt that exists on that page, `::`, and your comment:
+```markdown
+## p. 3
+> exact excerpt from the page :: why it matters {green}
+- :: a general comment about this page {orange}
+```
+```bash
+zotobs add paper.pdf notes.md --dry-run   # check that every excerpt is found
+zotobs add paper.pdf notes.md             # creates native Zotero annotations
+```
+Running it again creates no duplicates.
+
+**4. Edit comments in Obsidian, send the edits back.** Change a comment or a
+`#tag` in the exported note, then:
+```bash
+zotobs sync-md paper.pdf Vault/paper.md --dry-run
+zotobs sync-md paper.pdf Vault/paper.md
+```
+
+### With an agent
+
+Give any agent that can run shell commands the instructions in
+[`skills/zotero-anotacoes/SKILL.md`](skills/zotero-anotacoes/SKILL.md), then
+ask in plain language. The agent only runs the same deterministic commands, so
+you can always preview (`--dry-run`) and review before anything reaches Zotero.
+
+**5. Ask questions about your own annotations**
+> “Summarize my highlights and comments in `paper.pdf`, grouped by theme, and
+> list the questions I left open.”
+
+The agent reads them with `zotobs extract paper.pdf --json`.
+
+**6. Let the agent annotate the paper for you**
+> “Read `paper.pdf` and highlight the passages that define the main method,
+> with a one-line comment each.”
+
+The agent writes the annotations in the Markdown/JSON format of `zotobs add`,
+validates them with `--dry-run`, and — once you agree — creates them in Zotero.
+They are tagged `agente` by default, so you can filter, review or delete
+exactly what the agent added.
+
+**7. Review loop between you and an agent**
+> “Draft a comment for each of my highlights without a comment, in the
+> exported note.”
+
+You read the agent's drafts in Obsidian, edit what you want, and send them to
+Zotero with `zotobs sync-md`.
 
 ## Platform status
 

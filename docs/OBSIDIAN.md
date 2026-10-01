@@ -6,21 +6,21 @@
 zotobs extract "/caminho/artigo.pdf" -o "Vault/leituras/artigo.md" --imagens "Vault/leituras/artigo_img"
 ```
 
-Você recebe uma nota com YAML (`citekey`, `zotero_item`), seções por página e
-blocos como:
+Você recebe uma nota com YAML (`citekey`, `zotero_item`), uma seção por página
+(`#### p. N`, com link para a página) e um bloco por anotação:
 
 ```markdown
-## p. 87 (impresso: 57)
+#### p. 87 (impresso: 57)
+[↗ abrir página](zotero://open-pdf/library/items/ABCD1234?page=87)
 
-🟡 **destaque** · amarelo [↗](zotero://open-pdf/library/items/ABCD1234?page=87&annotation=EFGH5678)
-> trecho destacado
-
-**Comentário:** meu comentário
+> [↗](zotero://open-pdf/library/items/ABCD1234?page=87&annotation=EFGH5678) <span style="background:#ffd40066;"><i>“trecho destacado”</i></span>
+> meu comentário
 ```
 
-O link `↗` abre o Zotero na anotação exata. Refazer a exportação regenera a
-nota (não edite os blocos exportados esperando que voltem ao Zotero: só a
-**criação** de anotações é suportada hoje).
+O link `↗` abre o Zotero na anotação exata. Você pode **editar o comentário e as
+tags** dos blocos e levar a edição de volta com `zotobs sync-md` (ver abaixo), e
+reexportar mesclando sem perder o que escreveu entre os blocos (seção
+“Reexportar sem perder o que você escreveu”, mais adiante).
 
 ## 2. Obsidian → Zotero (comentários novos)
 
