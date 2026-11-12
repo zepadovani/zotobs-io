@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Atalho: zotobs <subcomando> ...
-#   anotações: extract | add | embed | strip | sync-md | bridge-token | info | pages
+#   anotações: extract | add | update | embed | strip | sync-md | bridge-token | info | pages
 #   biblioteca: libraries | collections | search | show | collection
 DIR="$(cd "$(dirname "$(readlink "${BASH_SOURCE[0]}" || echo "${BASH_SOURCE[0]}")")/.." && pwd)"
 # O 1º argumento que não é opção (nem valor de --zotero-dir/--base-dir) decide o script.

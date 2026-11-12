@@ -168,9 +168,22 @@ zotobs sync-md artigo.pdf notas.md               # grava (precisa do plugin com 
 Sincroniza comentário e tags dos blocos exportados por `extract`.
 
 **Tags na nota.** `extract --tag-style hash|link|both` escolhe a escrita: `#liminal_object` (padrão),
-`[[liminal object]]` ou as duas. Só o espaço muda (vira `_` na hashtag); hífens ficam (`#lugar-escuta`).
+`[[liminal object]]` ou as duas. Nos estilos `link` e `both` as tags ficam fora do `<small>`, como
+Markdown comum, para que o link interno funcione. Só o espaço muda (vira `_` na hashtag); hífens ficam (`#lugar-escuta`).
 Na volta, uma tag nova escrita como hashtag tem `_` trocado por espaço; escrita como `[[link]]`, vale o
 nome exato. Para remover uma tag no estilo `both`, apague as duas formas.
+
+## `update` — alterar anotações que já existem
+
+```bash
+zotobs update artigo.pdf alteracoes.json --dry-run   # confere e mostra o que mudaria
+zotobs update artigo.pdf alteracoes.json             # grava (precisa do plugin com o Zotero aberto)
+```
+`alteracoes.json`: `[{"key": "8ZZG3YHH", "comment": "…", "tags": ["liminal object"], "color": "green", "text": "novo trecho literal", "page": 56}]`.
+Só `key` é obrigatório; cada campo presente substitui o valor atual (`tags` substitui a lista inteira).
+`text` muda o trecho destacado (o novo trecho é localizado no PDF como no `add`); a chave da anotação
+não muda. Mudar o trecho exige um plugin que anuncie o recurso `update-position`; com plugin mais
+antigo o comando recusa e nada é gravado. Não há comando para apagar anotações nativas.
 
 ## `bridge-token` — parear o terminal com o plugin
 

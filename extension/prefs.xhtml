@@ -15,6 +15,16 @@
               label="Usar o CLI zotobs na exportação (desenhos sobre imagens, texto coberto, recortes)"/>
     <html:input id="zotobs-cli-path" type="text" preference="extensions.zotobs.cli_path"
                 placeholder="caminho do zotobs (vazio = ~/.local/bin/zotobs ou ~/repositorios/zotobs-io/bin/zotobs)"/>
+    <hbox align="center">
+      <label value="Tags na nota:"/>
+      <menulist id="zotobs-tag-style" preference="extensions.zotobs.tag_style" native="true">
+        <menupopup>
+          <menuitem value="hash" label="#liminal_object"/>
+          <menuitem value="link" label="[[liminal object]]"/>
+          <menuitem value="both" label="[[liminal object]] #liminal_object"/>
+        </menupopup>
+      </menulist>
+    </hbox>
     <checkbox id="zotobs-images" preference="extensions.zotobs.export_images"
               label="Salvar imagens das anotações de área (pasta &lt;nome&gt;_img)"/>
   </groupbox>

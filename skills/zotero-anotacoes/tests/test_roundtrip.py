@@ -106,3 +106,26 @@ def test_flags_em_portugues_continuam_funcionando(tmp_path):
     assert json.loads(out.stdout)["anotacoes"]
     assert run("extract", str(tmp_path / "b.pdf"), "--fonte", "ambas", "--json").returncode == 0
     assert run("add", str(pdf), str(spec), "--destino", "ambos", "--dry-run").returncode == 0
+
+
+def test_plan_updates_sem_gravar(tmp_path):
+    """update: confere comentário/tags/trecho de anotação existente e monta o corpo para a extensão."""
+    sys.path.insert(0, str(SCRIPT.parent))
+    import zotero_anot as za
+    pdf = tmp_path / "a.pdf"
+    make_pdf(str(pdf))
+    doc = pymupdf.open(str(pdf))
+    old = [{"key": "AAAAAAAA", "tipo": "highlight", "pagina": 2, "cor": "#ffd400", "texto": "timbre do tom-tom",
+            "comentario": "💻 nota", "tags": ["liminal object"]}]
+    plan = za.plan_updates(doc, old, [
+        {"key": "AAAAAAAA", "comment": "💻 nota", "tags": ["liminal object"]},                      # nada muda
+        {"key": "AAAAAAAA", "comment": "💻 nota\n\n💻 mais", "tags": ["liminal object", "lugar-escuta"]},
+        {"key": "AAAAAAAA", "text": "o timbre do tom-tom depende do tensionamento."},               # trecho expandido
+        {"key": "AAAAAAAA", "text": "frase que não existe"},
+        {"key": "ZZZZZZZZ", "comment": "x"},
+    ])
+    assert [p[1] for p in plan] == ["igual", "ok", "ok", "erro", "erro"]
+    assert plan[1][2] == {"key": "AAAAAAAA", "comment": "💻 nota\n\n💻 mais", "tags": ["liminal object", "lugar-escuta"]}
+    item = plan[2][2]
+    assert plan[2][3] == ["trecho"] and item["text"].startswith("o timbre") and item["sortIndex"]
+    assert json.loads(item["position"])["pageIndex"] == 1

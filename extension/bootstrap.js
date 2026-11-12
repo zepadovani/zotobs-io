@@ -3,7 +3,7 @@
  * Registra endpoints em http://127.0.0.1:23119/zotobs/* :
  *   GET  /zotobs/ping    -> {ok, version, zotero}
  *   POST /zotobs/import  -> cria anotações (mesmo JSON do snippet do CLI)
- *   POST /zotobs/update  -> altera comentário/tags de anotações já existentes
+ *   POST /zotobs/update  -> altera comentário/tags/cor/trecho de anotações já existentes
  *   POST /zotobs/collection -> cria coleções (subpastas) e põe itens nelas
  *
  * Segurança: exige o cabeçalho X-Zotobs-Token igual ao conteúdo de
@@ -13,9 +13,9 @@
  */
 var ZotobsBridge = {
   id: "zotobs-bridge@zotobs-io",
-  version: "0.1.2",
+  version: "0.1.3",
   MAX_ITEMS: 500,
-  features: ["annotations", "collections"],
+  features: ["annotations", "collections", "update-position"],   // o CLI confere antes de usar um recurso
   endpoints: ["/zotobs/ping", "/zotobs/import", "/zotobs/update", "/zotobs/collection"],
 
   log(msg) { Zotero.debug("[zotobs-bridge] " + msg); },
@@ -98,6 +98,14 @@ var ZotobsBridge = {
         if (!it || !it.isAnnotation() || it.parentID !== att.id) throw new Error("anotação não encontrada neste anexo");
         if (typeof d.comment === "string") it.annotationComment = d.comment;
         if (Array.isArray(d.tags)) it.setTags(d.tags.map((t) => ({ tag: String(t) })));
+        if (typeof d.color === "string") it.annotationColor = d.color;
+        if (d.position) {                                  // trecho novo: texto + posição + ordem, juntos
+          if (typeof d.text !== "string" || typeof d.sortIndex !== "string") throw new Error("position exige text e sortIndex");
+          it.annotationText = d.text;
+          it.annotationPosition = typeof d.position === "string" ? d.position : JSON.stringify(d.position);
+          it.annotationSortIndex = d.sortIndex;
+          if (typeof d.pageLabel === "string") it.annotationPageLabel = d.pageLabel;
+        }
         if (await it.saveTx()) out.atualizadas.push(d.key); else out.inalteradas.push(d.key);
       } catch (e) {
         this.log("falha em " + d.key + ": " + e);

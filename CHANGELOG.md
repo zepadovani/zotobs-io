@@ -1,10 +1,12 @@
 # Changelog
 
-## CLI — tags por anotação (não lançado)
+## zotobs-bridge 0.1.3 e CLI — tags por anotação e `update` (não lançado)
 - `add`: aceita `"tags": [...]` em cada anotação do JSON, somadas à `--tag` global. Tags não entram na chave.
 - `extract --tag-style hash|link|both`: tags como `#a_b` (padrão), `[[a b]]` ou as duas.
 - `sync-md`: lê `[[links]]` além de hashtags; em tag nova, `_` vira espaço (hífens ficam).
-- Pendente: mesmo estilo na exportação do plugin (`extension/export.js`).
+- `update`: novo comando; altera comentário, tags, cor e trecho de anotações existentes (via plugin), com `--dry-run`.
+- **Plugin 0.1.3:** `/zotobs/update` aceita cor e trecho novo e o `ping` anuncia `features`;
+  preferência `tag_style` na exportação. Nos estilos `link`/`both` as tags saem fora do `<small>`.
 
 ## zotobs-bridge 0.1.2 e CLI — 2026-11-11
 - **Nova skill `zotero-biblioteca`** (`zotero_lib.py`; atalho `zotobs` roteia sozinho): `libraries`,

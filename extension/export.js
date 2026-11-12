@@ -8,6 +8,9 @@
   const pref = (k) => Zotero.Prefs.get(P + k, true);
 
   const Z = {
+    /** hash: #a_b | link: [[a b]] | both: [[a b]] #a_b */
+    tagStyle() { const s = pref("tag_style"); return ["link", "both"].includes(s) ? s : "hash"; },
+
     async pickFolder(win, title) {
       const { FilePicker } = ChromeUtils.importESModule("chrome://zotero/content/modules/filePicker.mjs");
       const fp = new FilePicker();
@@ -56,7 +59,15 @@
         else if (typ === "underline") head = `<span style="text-decoration:underline;${hex ? `text-decoration-color:${hex};` : ""}text-decoration-thickness:2px;"><i>“${esc(a.annotationText)}”</i></span>`;
         else head = `<span style="${hex ? `color:${hex};` : ""}font-weight:bold;">${TYPE[typ] || typ}</span>`;
         const tags = a.getTags().map((t) => t.tag);
-        if (tags.length) head += " <small>" + tags.map((t) => "#" + t.replaceAll(" ", "_")).join(" ") + "</small>";
+        if (tags.length) {   // mesmo formato de fmt_tags/md_block do CLI
+          const style = Z.tagStyle(), out = [];
+          for (const t of tags) {
+            const linkable = style !== "hash" && !/[#^|\[\]]/.test(t);
+            if (linkable) out.push("[[" + t + "]]");
+            if (style !== "link" || !linkable) out.push("#" + t.replaceAll(" ", "_"));
+          }
+          head += style === "hash" ? " <small>" + out.join(" ") + "</small>" : " " + out.join(" ");
+        }
         L.push(`> ${link} ${head}  `);
         if (imgRelByKey.has(a.key)) L.push(`> ![](${imgRelByKey.get(a.key).replaceAll(" ", "%20")})`);
         const body = a.annotationComment || (["note", "text"].includes(typ) ? a.annotationText : "");
@@ -82,6 +93,7 @@
       const tmp = Services.dirsvc.get("TmpD", Ci.nsIFile).path;
       const log = PathUtils.join(tmp, "zotobs-export.log");
       const t0 = Date.now() - 1000;
+      const style = Z.tagStyle();   // só passa o flag quando foge do padrão (CLI antigo não o conhece)
       try {
         if (Zotero.isWin) {
           // Windows (não testado): script .cmd temporário, evita problemas de aspas
@@ -89,14 +101,14 @@
           const bat = PathUtils.join(tmp, "zotobs-export.cmd");
           await IOUtils.writeUTF8(bat, "@echo off\r\nchcp 65001 >nul\r\n" +
             'set "PATH=%USERPROFILE%\\.local\\bin;%PATH%"\r\n' +
-            `call ${q(cli)} extract ${q(file)} -o ${q(mdPath)} --images ${q(imgDir)} --if-exists ${mode} > ${q(log)} 2>&1\r\n`);
+            `call ${q(cli)} extract ${q(file)} -o ${q(mdPath)} --images ${q(imgDir)} --if-exists ${mode}${style !== "hash" ? " --tag-style " + style : ""} > ${q(log)} 2>&1\r\n`);
           await Zotero.Utilities.Internal.exec("cmd.exe", ["/d", "/c", bat]);
         } else {
           // macOS (testado: zsh) / Linux (não testado: bash). PATH explícito: o Zotero não herda o do terminal.
           const sh = Zotero.isMac ? "/bin/zsh" : "/bin/bash";
           await Zotero.Utilities.Internal.exec(sh,
-            ["-lc", 'export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"; "$0" extract "$1" -o "$2" --images "$3" --if-exists "$5" >"$4" 2>&1',
-              cli, file, mdPath, imgDir, log, mode]);
+            ["-lc", 'export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"; "$0" extract "$1" -o "$2" --images "$3" --if-exists "$5"' + (style !== "hash" ? ' --tag-style "$6"' : "") + ' >"$4" 2>&1',
+              cli, file, mdPath, imgDir, log, mode, style]);
         }
       } catch (e) { Zotero.debug("[zotobs-bridge] CLI: " + e + " (log em " + log + ")"); }
       if ((await IOUtils.exists(mdPath)) && (await IOUtils.stat(mdPath)).lastModified >= t0) return "";

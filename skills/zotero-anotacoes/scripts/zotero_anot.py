@@ -568,7 +568,8 @@ def md_block(a: dict, att, imgdir, saida, tag_style: str = "hash") -> list[str]:
         if tipo == "ink" and a.get("texto_coberto") and a["texto"]:
             head += f' <i>“{_esc(a["texto"])}”</i>'  # trecho do texto sob o desenho
     if a["tags"]:
-        head += " <small>" + fmt_tags(a["tags"], tag_style) + "</small>"
+        t = fmt_tags(a["tags"], tag_style)
+        head += f" <small>{t}</small>" if tag_style == "hash" else " " + t  # [[link]] fica fora do HTML
     out = [f"> {link} {head}  "]
     if a.get("imagem") and imgdir:
         try:
@@ -1024,7 +1025,6 @@ def cmd_add(args):
 
 
 _HEAD = re.compile(r"^> \[↗\]\(zotero://open-pdf/[^)]*annotation=([A-Z0-9]{8})\)(.*)$")
-_SMALL = re.compile(r"<small>(.*?)</small>")
 
 
 def parse_export_md(text: str) -> dict[str, dict]:
@@ -1039,14 +1039,14 @@ def parse_export_md(text: str) -> dict[str, dict]:
         if m:
             if cur is not None:
                 cur["comment"] = "\n".join(cur.pop("_c")).strip("\n")
-            tags, names = set(), {}
-            for g in _SMALL.findall(m.group(2)):
-                for nm in _WIKI.findall(g):
-                    nm = re.sub(r"\s+", " ", nm).strip()
-                    if nm:
-                        names[nm.replace(" ", "_")] = nm
-                tags |= {t[1:] for t in _WIKI.sub(" ", g).split() if t.startswith("#") and len(t) > 1}
-            tags |= set(names)
+            # tags = o que vem depois do trecho/rótulo (último </span> ou </i>), com ou sem <small>
+            tail = re.sub(r"</?small>", " ", re.split(r"</span>|</i>", m.group(2))[-1])
+            names = {}
+            for nm in _WIKI.findall(tail):
+                nm = re.sub(r"\s+", " ", nm).strip()
+                if nm:
+                    names[nm.replace(" ", "_")] = nm
+            tags = {t[1:] for t in _WIKI.sub(" ", tail).split() if t.startswith("#") and len(t) > 1} | set(names)
             cur = out.setdefault(m.group(1), {"comment": "", "tags": tags, "names": names, "_c": []})
             continue
         if cur is None:
@@ -1101,6 +1101,107 @@ def cmd_sync_md(args):
     for f in res["falhas"]:
         print("  falha:", f)
     if res["falhas"]:
+        sys.exit(1)
+
+
+def plan_updates(doc, existing: list[dict], changes: list[dict]) -> list[tuple]:
+    """Confere alterações em anotações JÁ existentes, sem gravar nada.
+    change = {"key", "comment"?, "tags"?, "color"?, "text"?, "page"?, "occurrence"?, "context"?}.
+    -> [(change, "ok", item, [o que muda]) | (change, "igual", item, []) | (change, "erro", mensagem, [])];
+    item é o corpo aceito por /zotobs/update (text/position/sortIndex/pageLabel quando o trecho muda)."""
+    import zotero_native as zn
+    ws = lambda t: re.sub(r"\s+", " ", t or "").strip()
+    by_key = {a["key"]: a for a in existing}
+    out = []
+    for c in changes:
+        a = by_key.get(str(c.get("key", "")))
+        if not a:
+            out.append((c, "erro", "anotação não encontrada neste anexo", []))
+            continue
+        item, what = {"key": a["key"]}, []
+        if isinstance(c.get("comment"), str) and c["comment"].strip("\n") != (a["comentario"] or "").strip("\n"):
+            item["comment"] = c["comment"]
+            what.append("comentário")
+        if c.get("tags") is not None:
+            tags = c["tags"].split(",") if isinstance(c["tags"], str) else c["tags"]
+            tags = list(dict.fromkeys(t for t in (ws(str(x)) for x in tags) if t))
+            if set(tags) != set(a["tags"]):
+                item["tags"] = tags
+                what.append("tags")
+        if c.get("color"):
+            hexv = str(NAME2HEX.get(str(c["color"]).lower(), c["color"])).lower()
+            if not hexv.startswith("#"):
+                out.append((c, "erro", f"cor desconhecida '{c['color']}'", []))
+                continue
+            if hexv != a["cor"]:
+                item["color"] = hexv
+                what.append("cor")
+        if isinstance(c.get("text"), str) and ws(c["text"]) != ws(a["texto"]):
+            if a["tipo"] not in ("highlight", "underline"):
+                out.append((c, "erro", f"só highlight/underline têm trecho para alterar (esta é {a['tipo']})", []))
+                continue
+            pidx = int(c.get("page") or a["pagina"])
+            if not 1 <= pidx <= len(doc):
+                out.append((c, "erro", f"página {pidx} fora do intervalo 1..{len(doc)}", []))
+                continue
+            quads, err = find_quads(doc[pidx - 1], ws(c["text"]), c.get("occurrence"), c.get("context"))
+            if err:
+                out.append((c, "erro", err, []))
+                continue
+            nat = zn.to_native(doc[pidx - 1], {"id": "x", "type": a["tipo"], "quads": quads, "color": a["cor"] or "#ffd400",
+                                               "comment": "", "text": ws(c["text"])}, "", "", None)
+            item.update(text=ws(c["text"]), position=nat["annotationPosition"], sortIndex=nat["annotationSortIndex"],
+                        pageLabel=nat["annotationPageLabel"])
+            what.append("trecho")
+        out.append((c, "ok" if what else "igual", item, what))
+    return out
+
+
+def cmd_update(args):
+    import zotero_native as zn
+    pdf = Path(args.pdf).expanduser()
+    if not pdf.exists():
+        die(f"PDF não encontrado: {pdf}")
+    data_dir, base = zotero_dirs(args)
+    con = open_db(data_dir)
+    att = resolve_attachment(con, data_dir, base, pdf)
+    if not att:
+        die("este PDF não está registrado como attachment no Zotero")
+    src = sys.stdin.read() if args.spec == "-" else Path(args.spec).expanduser().read_text(encoding="utf-8")
+    changes = json.loads(src)
+    if isinstance(changes, dict):
+        changes = changes.get("alteracoes", changes.get("changes", [changes]))
+    plan = plan_updates(pymupdf.open(pdf), zotero_annotations(con, att), changes)
+    for c, st, r, what in plan:
+        if st == "ok":
+            print(f"[mudou] {r['key']}: " + ", ".join(what))
+        elif st == "igual":
+            print(f"[igual] {r['key']}")
+        else:
+            print(f"[erro] {r}  <- {json.dumps(c, ensure_ascii=False)[:100]}")
+    items = [r for _, st, r, _ in plan if st == "ok"]
+    n_err = sum(1 for _, st, _, _ in plan if st == "erro")
+    print(f"\n{len(items)} alterações, {n_err} erros")
+    if args.dry_run or not items:
+        print("(nada gravado)")
+        sys.exit(1 if n_err else 0)
+    if n_err and args.strict:
+        die("--strict: há erros; nada gravado", 1)
+    token = zn.bridge_token()
+    if not token:
+        die("update precisa da extensão zotobs-bridge: rode `zotobs bridge-token` e instale o .xpi")
+    try:
+        info = zn.bridge_ping(token)
+        if any("position" in i for i in items) and "update-position" not in info.get("features", []):
+            die("a extensão instalada não altera o trecho de uma anotação (só comentário e tags); "
+                "atualize o .xpi — nada foi gravado")
+        res = zn.update_bridge(token, att["libraryID"], att["key"], items)
+    except zn.ApiError as e:
+        die(f"{e} (a extensão está instalada, atualizada, e o Zotero aberto?)")
+    print(f"[zotero/extensão] {len(res['atualizadas'])} atualizadas, {len(res['inalteradas'])} inalteradas, {len(res['falhas'])} falhas")
+    for f in res["falhas"]:
+        print("  falha:", f)
+    if res["falhas"] or n_err:
         sys.exit(1)
 
 
@@ -1218,6 +1319,13 @@ def main():
     sy.add_argument("md", help="nota gerada por `extract` (com os links zotero://…annotation=KEY)")
     sy.add_argument("--dry-run", action="store_true")
     sy.set_defaults(fn=cmd_sync_md)
+
+    u = sub.add_parser("update", help="altera anotações já existentes no Zotero (comentário, tags, cor, trecho)")
+    u.add_argument("pdf")
+    u.add_argument("spec", help="JSON: [{\"key\": \"ABCD1234\", \"comment\"?, \"tags\"?, \"color\"?, \"text\"?, \"page\"?}], ou - para stdin")
+    u.add_argument("--dry-run", action="store_true", help="só confere e mostra o que mudaria")
+    u.add_argument("--strict", "--estrito", dest="strict", action="store_true", help="não grava nada se alguma alteração falhar")
+    u.set_defaults(fn=cmd_update)
 
     t = sub.add_parser("bridge-token", help="cria/mostra o token de pareamento com a extensão zotobs-bridge")
     t.set_defaults(fn=cmd_bridge_token)

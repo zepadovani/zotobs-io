@@ -181,6 +181,7 @@ def test_tags_ida_e_volta_hash_e_link():
          "origem": "zotero", "pagina": 1, "key": "AAAAAAAA"}
     for style in za.TAG_STYLES:
         md = "\n".join(za.md_block(a, {"key": "ATT12345"}, None, None, style))
+        assert ("<small>" in md) == (style == "hash")     # [[link]] fica fora do HTML, senão não vira link
         r = za.parse_export_md(md)["AAAAAAAA"]
         assert r["tags"] == {"liminal_object", "lugar-escuta"}, style
     assert r["names"] == {"liminal_object": "liminal object", "lugar-escuta": "lugar-escuta"}
