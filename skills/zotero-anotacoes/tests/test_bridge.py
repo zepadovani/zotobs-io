@@ -126,8 +126,8 @@ def test_parse_export_md():
 > só isto
 """
     r = za.parse_export_md(md)
-    assert r["2REKQJJZ"] == {"comment": "linha 1\n\nlinha 3", "tags": set()}
-    assert r["W99F7LSA"] == {"comment": "", "tags": {"agente", "a_b"}}
+    assert r["2REKQJJZ"] == {"comment": "linha 1\n\nlinha 3", "tags": set(), "names": {}}
+    assert r["W99F7LSA"] == {"comment": "", "tags": {"agente", "a_b"}, "names": {}}
     assert r["QW9UEHTH"]["comment"] == "só isto"
 
 
@@ -168,3 +168,23 @@ def test_merge_ancora_removida_usa_proxima_ou_orfao():
     assert out.index("nota minha") < out.index("BBBBBBBB") and info["orfaos"] == 0
     out, info = za.merge_export(old, _doc([], page=9))   # tudo apagado
     assert info["orfaos"] == 1 and "nota minha" in out
+
+
+def test_tags_ida_e_volta_hash_e_link():
+    """Espaço <-> `_` na hashtag; [[link]] guarda o nome exato; hífen nunca muda."""
+    import zotero_anot as za
+    tags = ["liminal object", "lugar-escuta", "a|b"]
+    assert za.fmt_tags(tags) == "#liminal_object #lugar-escuta #a|b"
+    assert za.fmt_tags(tags, "link") == "[[liminal object]] [[lugar-escuta]] #a|b"      # sem link possível: hashtag
+    assert za.fmt_tags(tags[:2], "both") == "[[liminal object]] #liminal_object [[lugar-escuta]] #lugar-escuta"
+    a = {"tipo": "highlight", "cor": "#ffd400", "texto": "x", "comentario": "", "tags": tags[:2],
+         "origem": "zotero", "pagina": 1, "key": "AAAAAAAA"}
+    for style in za.TAG_STYLES:
+        md = "\n".join(za.md_block(a, {"key": "ATT12345"}, None, None, style))
+        r = za.parse_export_md(md)["AAAAAAAA"]
+        assert r["tags"] == {"liminal_object", "lugar-escuta"}, style
+    assert r["names"] == {"liminal_object": "liminal object", "lugar-escuta": "lugar-escuta"}
+    # tag nova digitada só como link, com apelido
+    head = "> [↗](zotero://open-pdf/library/items/ATT12345?page=1&annotation=BBBBBBBB) <i>“x”</i> <small>[[objeto liminar|ol]] #novo_tema</small>  "
+    r = za.parse_export_md(head)["BBBBBBBB"]
+    assert r["tags"] == {"objeto_liminar", "novo_tema"} and r["names"] == {"objeto_liminar": "objeto liminar"}

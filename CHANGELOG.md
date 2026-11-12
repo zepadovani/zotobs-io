@@ -1,5 +1,11 @@
 # Changelog
 
+## CLI — tags por anotação (não lançado)
+- `add`: aceita `"tags": [...]` em cada anotação do JSON, somadas à `--tag` global. Tags não entram na chave.
+- `extract --tag-style hash|link|both`: tags como `#a_b` (padrão), `[[a b]]` ou as duas.
+- `sync-md`: lê `[[links]]` além de hashtags; em tag nova, `_` vira espaço (hífens ficam).
+- Pendente: mesmo estilo na exportação do plugin (`extension/export.js`).
+
 ## zotobs-bridge 0.1.2 e CLI — 2026-11-11
 - **Nova skill `zotero-biblioteca`** (`zotero_lib.py`; atalho `zotobs` roteia sozinho): `libraries`,
   `collections`, `search`, `show` e `collection create/add`. Busca por tema na biblioteca (título,

@@ -84,7 +84,7 @@ def to_native(page, ann: dict, att_key: str, author: str, tag: str | None) -> di
         "annotationPageLabel": page.get_label() or str(idx + 1),
         "annotationSortIndex": sort_index(page, first, off),
         "annotationPosition": json.dumps(pos, separators=(",", ":")),
-        "tags": [{"tag": tag}] if tag else [],
+        "tags": [{"tag": t} for t in dict.fromkeys([*ann.get("tags", []), *([tag] if tag else [])])],
     }
     if typ in ("highlight", "underline"):
         item["annotationText"] = ann.get("text", "")

@@ -92,7 +92,9 @@ JSON (lista):
 Cores: yellow/amarelo, red/vermelho, green/verde, blue/azul, purple/roxo,
 magenta, orange/laranja, gray/cinza.
 
-Opções úteis: `--tag agente` (tag nas anotações nativas; `''` remove),
+No JSON, cada anotação pode trazer as próprias tags: `"tags": ["liminal object", "lugar-escuta"]`
+(elas não entram na chave da anotação). Opções úteis: `--tag agente` (tag somada a todas as
+anotações nativas; `''` remove),
 `--author NOME`, `--strict` (aborta se algum item falhar), `--output cópia.pdf`
 (com `--dest pdf`).
 
@@ -164,6 +166,11 @@ zotobs sync-md artigo.pdf notas.md --dry-run     # mostra o que mudou
 zotobs sync-md artigo.pdf notas.md               # grava (precisa do plugin com o Zotero aberto)
 ```
 Sincroniza comentário e tags dos blocos exportados por `extract`.
+
+**Tags na nota.** `extract --tag-style hash|link|both` escolhe a escrita: `#liminal_object` (padrão),
+`[[liminal object]]` ou as duas. Só o espaço muda (vira `_` na hashtag); hífens ficam (`#lugar-escuta`).
+Na volta, uma tag nova escrita como hashtag tem `_` trocado por espaço; escrita como `[[link]]`, vale o
+nome exato. Para remover uma tag no estilo `both`, apague as duas formas.
 
 ## `bridge-token` — parear o terminal com o plugin
 

@@ -88,7 +88,8 @@ Um bloco de citação por anotação: link `[↗]` para o leitor do Zotero, o tr
 | desenho | rótulo `desenho` na cor, seguido do trecho coberto em *“itálico”* (se houver) + recorte abaixo |
 
 Editar o comentário (linhas `> …` abaixo da 1ª) ou as `<small>#tags</small>` e rodar
-`zotobs sync-md` leva a mudança de volta ao Zotero.
+`zotobs sync-md` leva a mudança de volta ao Zotero. Com `extract --tag-style both`, cada tag sai
+como `[[liminal object]] #liminal_object` (link interno + hashtag); o plugin ainda exporta só hashtags.
 
 ### Reexportar sem perder o que você escreveu
 

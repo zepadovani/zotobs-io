@@ -370,7 +370,7 @@ def cmd_extract(args):
     if args.json:
         text = json.dumps({"pdf": str(pdf), "item": meta, "anotacoes": anns}, ensure_ascii=False, indent=2)
     else:
-        text = to_markdown(pdf, meta, att, anns, imgdir, args.output)
+        text = to_markdown(pdf, meta, att, anns, imgdir, args.output, args.tag_style)
     if args.output:
         dst = Path(args.output).expanduser()
         extra = ""
@@ -527,7 +527,25 @@ def _esc(t: str) -> str:
     return html.escape(" ".join((t or "").split()), quote=False)
 
 
-def md_block(a: dict, att, imgdir, saida) -> list[str]:
+_LINK_BAD = re.compile(r"[#^|\[\]]")  # caracteres que um [[link]] do Obsidian não aceita
+_WIKI = re.compile(r"\[\[([^\]|]+)(?:\|[^\]]*)?\]\]")
+TAG_STYLES = ("hash", "link", "both")
+
+
+def fmt_tags(tags: list[str], style: str = "hash") -> str:
+    """Tags do Zotero -> texto da nota. hash: `#a_b`; link: `[[a b]]`; both: `[[a b]] #a_b`.
+    Só o espaço muda (vira `_` na hashtag); hífens ficam como estão. Na volta (sync-md), `_` vira espaço."""
+    out = []
+    for t in tags:
+        linkable = style in ("link", "both") and not _LINK_BAD.search(t)
+        if linkable:
+            out.append(f"[[{t}]]")
+        if style != "link" or not linkable:
+            out.append("#" + t.replace(" ", "_"))
+    return " ".join(out)
+
+
+def md_block(a: dict, att, imgdir, saida, tag_style: str = "hash") -> list[str]:
     """Um bloco `> ...` por anotação: link + trecho/rótulo colorido (HTML) na 1ª linha,
     comentário logo abaixo. Formato lido de volta por `parse_export_md` (sync-md)."""
     hexv = (a["cor"] or "").lower()
@@ -550,7 +568,7 @@ def md_block(a: dict, att, imgdir, saida) -> list[str]:
         if tipo == "ink" and a.get("texto_coberto") and a["texto"]:
             head += f' <i>“{_esc(a["texto"])}”</i>'  # trecho do texto sob o desenho
     if a["tags"]:
-        head += " <small>" + " ".join("#" + t.replace(" ", "_") for t in a["tags"]) + "</small>"
+        head += " <small>" + fmt_tags(a["tags"], tag_style) + "</small>"
     out = [f"> {link} {head}  "]
     if a.get("imagem") and imgdir:
         try:
@@ -566,7 +584,7 @@ def md_block(a: dict, att, imgdir, saida) -> list[str]:
     return out
 
 
-def to_markdown(pdf: Path, meta, att, anns, imgdir, saida) -> str:
+def to_markdown(pdf: Path, meta, att, anns, imgdir, saida, tag_style: str = "hash") -> str:
     meta = meta or {}
     title = meta.get("title") or pdf.stem
     L = ["---", f'title: "{title.replace(chr(34), chr(39))}"']
@@ -590,7 +608,7 @@ def to_markdown(pdf: Path, meta, att, anns, imgdir, saida) -> str:
             if att:
                 L.append(f"[↗ abrir página](zotero://open-pdf/library/items/{att['key']}?page={page})")
             L.append("")
-        L += md_block(a, att, imgdir, saida)
+        L += md_block(a, att, imgdir, saida, tag_style)
     return "\n".join(L).rstrip() + "\n"
 
 
@@ -739,8 +757,12 @@ def resolve_spec(doc, spec: dict):
     hexv = NAME2HEX.get(str(color).lower(), color)
     if not str(hexv).startswith("#"):
         return "erro", f"cor desconhecida '{color}'"
+    tags = spec.get("tags") or []
+    if isinstance(tags, str):
+        tags = tags.split(",")
     ann = {"id": ann_id(spec), "type": typ, "page": pidx, "color": hexv.lower(),
-           "comment": spec.get("comment", "") or "", "text": re.sub(r"\s+", " ", spec.get("text", "") or "").strip()}
+           "comment": spec.get("comment", "") or "", "text": re.sub(r"\s+", " ", spec.get("text", "") or "").strip(),
+           "tags": list(dict.fromkeys(t for t in (re.sub(r"\s+", " ", str(x)).strip() for x in tags) if t))}
     if typ in ("highlight", "underline"):
         if not ann["text"]:
             return "erro", f"{typ} exige 'text' (trecho literal presente na página)"
@@ -982,7 +1004,8 @@ def cmd_add(args):
     n_err = len(plan) - len(anns)
     for s, st, r in plan:
         if st == "ok":
-            print(f"[ok] p.{r['page']} {r['type']} {r['id']} -> chave Zotero {__import__('zotero_native').zkey(r['id'])}")
+            tg = f" | tags: {', '.join(r['tags'])}" if r.get("tags") else ""
+            print(f"[ok] p.{r['page']} {r['type']} {r['id']} -> chave Zotero {__import__('zotero_native').zkey(r['id'])}{tg}")
         else:
             print(f"[erro] {r}  <- {json.dumps(s, ensure_ascii=False)[:100]}")
     print(f"\n{len(anns)} válidas, {n_err} erros | destino: {args.dest}")
@@ -1005,8 +1028,10 @@ _SMALL = re.compile(r"<small>(.*?)</small>")
 
 
 def parse_export_md(text: str) -> dict[str, dict]:
-    """Nota exportada por `extract` -> {chave: {'comment': str, 'tags': set[str]}}.
-    Comentário = linhas `> ...` após a 1ª linha do bloco (exceto imagens `> ![`)."""
+    """Nota exportada por `extract` -> {chave: {'comment': str, 'tags': set[str], 'names': dict}}.
+    Comentário = linhas `> ...` após a 1ª linha do bloco (exceto imagens `> ![`).
+    'tags' vem normalizado (espaço -> `_`), juntando `#a_b` e `[[a b]]`; 'names' guarda o nome exato
+    de cada tag escrita como link."""
     out: dict[str, dict] = {}
     cur = None
     for ln in text.splitlines() + [""]:
@@ -1014,10 +1039,15 @@ def parse_export_md(text: str) -> dict[str, dict]:
         if m:
             if cur is not None:
                 cur["comment"] = "\n".join(cur.pop("_c")).strip("\n")
-            tags = set()
+            tags, names = set(), {}
             for g in _SMALL.findall(m.group(2)):
-                tags |= {t[1:] for t in g.split() if t.startswith("#")}
-            cur = out.setdefault(m.group(1), {"comment": "", "tags": tags, "_c": []})
+                for nm in _WIKI.findall(g):
+                    nm = re.sub(r"\s+", " ", nm).strip()
+                    if nm:
+                        names[nm.replace(" ", "_")] = nm
+                tags |= {t[1:] for t in _WIKI.sub(" ", g).split() if t.startswith("#") and len(t) > 1}
+            tags |= set(names)
+            cur = out.setdefault(m.group(1), {"comment": "", "tags": tags, "names": names, "_c": []})
             continue
         if cur is None:
             continue
@@ -1049,7 +1079,8 @@ def cmd_sync_md(args):
         norm_tag = lambda t: t.replace(" ", "_")
         if {norm_tag(t) for t in a["tags"]} != w["tags"]:
             keep = {norm_tag(t): t for t in a["tags"]}
-            ch["tags"] = [keep.get(t, t) for t in sorted(w["tags"])]
+            # tag nova: nome exato do [[link]], senão a hashtag com `_` -> espaço (hífens ficam)
+            ch["tags"] = [keep.get(t) or w["names"].get(t) or t.replace("_", " ") for t in sorted(w["tags"])]
         if len(ch) > 1:
             changes.append(ch)
             print(f"[mudou] {a['key']} p.{a['pagina']}: " + ", ".join(k for k in ch if k != "key"))
@@ -1149,6 +1180,8 @@ def main():
                    choices=["merge", "overwrite"], default="merge",
                    help="se o .md já existe: merge (padrão; mantém o que você escreveu entre os blocos) ou overwrite")
     e.add_argument("--images", "--imagens", dest="images", help="pasta onde salvar recortes PNG de anotações image/ink")
+    e.add_argument("--tag-style", "--estilo-tags", dest="tag_style", choices=TAG_STYLES, default="hash",
+                   help="como escrever as tags na nota: hash (#a_b, padrão), link ([[a b]]) ou both ([[a b]] #a_b)")
     e.set_defaults(fn=cmd_extract)
 
     a = sub.add_parser("add", help="inclui anotações (JSON ou Markdown do Obsidian)")
@@ -1159,7 +1192,8 @@ def main():
     a.add_argument("--offline", action="store_true", help="não usa a API: gera o snippet JS para colar no Zotero")
     a.add_argument("--no-plugin", "--sem-extensao", dest="no_plugin", action="store_true",
                    help="não tenta a extensão zotobs-bridge (vai direto para Web API/snippet)")
-    a.add_argument("--tag", default="agente", help="tag aplicada às anotações nativas ('' = nenhuma)")
+    a.add_argument("--tag", default="agente", help="tag aplicada a todas as anotações nativas ('' = nenhuma); "
+                   "soma-se às \"tags\" que cada anotação trouxer no JSON")
     a.add_argument("--author", "--autor", dest="author", default=AUTHOR_DEFAULT, help="nome do autor gravado nas anotações")
     a.add_argument("--dry-run", action="store_true", help="só valida/mostra o que faria")
     a.add_argument("--strict", "--estrito", dest="strict", action="store_true", help="não grava nada se alguma spec falhar")

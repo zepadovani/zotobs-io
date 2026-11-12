@@ -72,6 +72,11 @@ def test_markdown_e_native_offline(tmp_path):
     st, ann = za.resolve_spec(doc, specs[0])
     assert st == "ok"
     item = zn.to_native(doc[1], ann, "ATTKEY12", "t", "agente")
+    assert item["tags"] == [{"tag": "agente"}]
+    st, ann2 = za.resolve_spec(doc, {**specs[0], "tags": ["liminal object", "lugar-escuta", "liminal  object", ""]})
+    assert ann2["id"] == ann["id"]                      # tags não entram na chave
+    assert zn.to_native(doc[1], ann2, "ATTKEY12", "t", "")["tags"] == [{"tag": "liminal object"}, {"tag": "lugar-escuta"}]
+    assert zn.to_native(doc[1], ann2, "ATTKEY12", "t", "agente")["tags"][-1] == {"tag": "agente"}
     assert item["key"] == zn.zkey(ann["id"]) and len(item["key"]) == 8
     pos = json.loads(item["annotationPosition"])
     assert pos["pageIndex"] == 1 and pos["rects"][0][1] < pos["rects"][0][3]  # y de baixo p/ cima
