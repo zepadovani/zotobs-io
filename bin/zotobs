@@ -1,4 +1,19 @@
 #!/usr/bin/env bash
-# Atalho: zotobs <subcomando> ...  (extract | add | embed | strip | info | pages)
+# Atalho: zotobs <subcomando> ...
+#   anotações: extract | add | embed | strip | sync-md | bridge-token | info | pages
+#   biblioteca: libraries | collections | search | show | collection
 DIR="$(cd "$(dirname "$(readlink "${BASH_SOURCE[0]}" || echo "${BASH_SOURCE[0]}")")/.." && pwd)"
-exec uv run --script "$DIR/skills/zotero-anotacoes/scripts/zotero_anot.py" "$@"
+# O 1º argumento que não é opção (nem valor de --zotero-dir/--base-dir) decide o script.
+cmd=""; args=("$@"); i=0
+while [ $i -lt $# ]; do
+  case "${args[$i]}" in
+    --zotero-dir|--base-dir) i=$((i + 2));;
+    -*) i=$((i + 1));;
+    *) cmd="${args[$i]}"; break;;
+  esac
+done
+case "$cmd" in
+  libraries|collections|search|show|collection) script="$DIR/skills/zotero-biblioteca/scripts/zotero_lib.py";;
+  *) script="$DIR/skills/zotero-anotacoes/scripts/zotero_anot.py";;
+esac
+exec uv run --script "$script" "$@"

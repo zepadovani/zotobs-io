@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Instala a skill (symlinks) nos diretórios de skills dos agentes, o atalho `zotobs`
+# Instala as skills (symlinks) nos diretórios de skills dos agentes, o atalho `zotobs`
 # e um config.json de exemplo. Não sobrescreve nada existente sem --force.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
-SKILL="$ROOT/skills/zotero-anotacoes"
+SKILLS=(zotero-anotacoes zotero-biblioteca)
 FORCE=0; TARGETS=()
 usage() { cat <<U
 uso: ./install.sh [--claude] [--agents] [--opencode] [--all] [--force]
@@ -27,11 +27,14 @@ esac; done
 [ ${#TARGETS[@]} -eq 0 ] && { usage; exit 1; }
 command -v uv >/dev/null || echo "aviso: 'uv' não encontrado (https://docs.astral.sh/uv/). Alternativa: pip install pymupdf e usar python3."
 for t in "${TARGETS[@]}"; do
-  mkdir -p "$t"; dest="$t/zotero-anotacoes"
-  if [ -L "$dest" ]; then ln -sfn "$SKILL" "$dest"; echo "atualizado: $dest"
-  elif [ -e "$dest" ]; then
-    if [ $FORCE -eq 1 ]; then echo "existe e NÃO é symlink: $dest — remova manualmente (ou faça backup) e rode de novo"; else echo "pulado (já existe): $dest  [--force não apaga diretórios reais; mova-o antes]"; fi
-  else ln -s "$SKILL" "$dest"; echo "instalado: $dest -> $SKILL"; fi
+  mkdir -p "$t"
+  for name in "${SKILLS[@]}"; do
+    src="$ROOT/skills/$name"; dest="$t/$name"
+    if [ -L "$dest" ]; then ln -sfn "$src" "$dest"; echo "atualizado: $dest"
+    elif [ -e "$dest" ]; then
+      if [ $FORCE -eq 1 ]; then echo "existe e NÃO é symlink: $dest — remova manualmente (ou faça backup) e rode de novo"; else echo "pulado (já existe): $dest  [--force não apaga diretórios reais; mova-o antes]"; fi
+    else ln -s "$src" "$dest"; echo "instalado: $dest -> $src"; fi
+  done
 done
 mkdir -p "$HOME/.local/bin"; ln -sfn "$ROOT/bin/zotobs" "$HOME/.local/bin/zotobs"; echo "atalho: ~/.local/bin/zotobs (confira se está no PATH)"
 CFG="$HOME/.config/zotero-anot/config.json"

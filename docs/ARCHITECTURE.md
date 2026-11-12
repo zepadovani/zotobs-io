@@ -64,7 +64,12 @@ skills/zotero-anotacoes/
   scripts/zotero_anot.py   CLI: extract, add, embed, strip, info, pages
   scripts/zotero_native.py backends nativos: chaves, posição, Web API, snippet JS
   tests/test_roundtrip.py  PDF sintético: add/extract/strip/markdown/nativo
-bin/zotobs                 atalho
+skills/zotero-biblioteca/
+  SKILL.md                 instruções para agentes (busca e coleções)
+  scripts/zotero_lib.py    CLI: libraries, collections, search, show, collection create/add
+  tests/test_lib.py        banco sintético, plugin falso, JS do plugin em node
+  tests/harness.js         Zotero simulado para rodar o JS do plugin em node
+bin/zotobs                 atalho (escolhe o script pelo subcomando)
 install.sh                 symlinks para os agentes
 docs/                      documentação
 extension/                 (futuro) extensão do Zotero
@@ -74,8 +79,26 @@ Seções de `zotero_anot.py` (candidatas a virar módulos num pacote):
 config do Zotero e banco → extração → desenhos → páginas → info → localizador
 → `resolve_spec` / escritores → entrada Markdown → comandos.
 
+## Coleções e busca na biblioteca
+
+- **Escrita só pelo plugin/snippet, nunca pela Web API.** O banco local pode estar à frente do
+  servidor (itens ainda não sincronizados), e alterar coleções pela Web API exigiria a versão
+  atual de cada item. O plugin usa a API interna (`Zotero.Collection.saveTx`,
+  `item.addToCollection` + `saveTx`), que sincroniza normalmente depois.
+- **Um só código JS.** `zotobsCollectionOp` roda no plugin (`/zotobs/collection`) e dentro do
+  snippet; fica entre marcadores em `extension/bootstrap.js` e em `JS_CORE` de `zotero_lib.py`,
+  e um teste garante que são idênticos. O Python decide (resolve nomes, prévia); o JS só executa
+  e é idempotente (reaproveita coleção de mesmo nome e mesma mãe; pula item que já está).
+- **Leitura.** Mesma cópia do banco usada pelas anotações. A busca carrega os itens da biblioteca
+  e casa em Python (normaliza acentos/caixa; início de palavra), com pesos por campo. O texto
+  completo consulta o FTS5 do próprio Zotero (`fulltext.sqlite`, `fulltextContent`, `rowid` =
+  anexo → item pai); o layout é o do Zotero 10 (em versões anteriores o índice não é lido).
+- Coleções na lixeira (`deletedCollections`) e itens apagados (`deletedItems`) são ignorados.
+
 ## Limites conhecidos
 
+- `search`/`collection` só enxergam itens que já estão na biblioteca; não importam referências novas.
+- Não removem itens de coleções nem renomeiam/apagam coleções.
 - `add` cria highlight, underline, note e text; **não** cria image/ink.
 - Não edita comentário de anotação existente (só cria).
 - A Web API exige sync com o servidor do Zotero e o anexo já sincronizado.

@@ -4,16 +4,19 @@
  *   GET  /zotobs/ping    -> {ok, version, zotero}
  *   POST /zotobs/import  -> cria anotações (mesmo JSON do snippet do CLI)
  *   POST /zotobs/update  -> altera comentário/tags de anotações já existentes
+ *   POST /zotobs/collection -> cria coleções (subpastas) e põe itens nelas
  *
  * Segurança: exige o cabeçalho X-Zotobs-Token igual ao conteúdo de
  * ~/.config/zotero-anot/bridge_token (criado por `zotobs bridge-token`) e
- * recusa requisições com Origin (navegadores). Só cria anotações.
+ * recusa requisições com Origin (navegadores). Só cria anotações e coleções
+ * e adiciona itens a coleções (nunca remove nem apaga nada).
  */
 var ZotobsBridge = {
   id: "zotobs-bridge@zotobs-io",
-  version: "0.1.1",
+  version: "0.1.2",
   MAX_ITEMS: 500,
-  endpoints: ["/zotobs/ping", "/zotobs/import", "/zotobs/update"],
+  features: ["annotations", "collections"],
+  endpoints: ["/zotobs/ping", "/zotobs/import", "/zotobs/update", "/zotobs/collection"],
 
   log(msg) { Zotero.debug("[zotobs-bridge] " + msg); },
 
@@ -105,6 +108,24 @@ var ZotobsBridge = {
     return this.reply(200, out);
   },
 
+  async doCollection(body) {
+    const lib = body && body.library;
+    if (!Number.isInteger(lib) || !Array.isArray(body.items) || !(body.collection || body.create))
+      return this.reply(400, { error: "corpo inválido: library, items e collection ou create" });
+    if (body.items.length > this.MAX_ITEMS)
+      return this.reply(413, { error: "itens demais (máx. " + this.MAX_ITEMS + ")" });
+    try {
+      const out = await zotobsCollectionOp(body);
+      this.log("coleção " + out.colecao + ": " + out.colecoes_criadas.length + " criadas, " +
+               out.adicionados.length + " itens adicionados, " + out.ja_estavam.length +
+               " já estavam, " + out.falhas.length + " falhas");
+      return this.reply(200, out);
+    } catch (e) {
+      this.log("coleção: " + e);
+      return this.reply(422, { error: String(e.message || e) });
+    }
+  },
+
   register() {
     const self = this;
     const E = Zotero.Server.Endpoints;
@@ -113,7 +134,7 @@ var ZotobsBridge = {
       supportedMethods: ["GET"],
       init: async function (req) {
         if (!(await self.authorized(req))) return self.reply(403, { error: "token" });
-        return self.reply(200, { ok: true, version: self.version, zotero: Zotero.version });
+        return self.reply(200, { ok: true, version: self.version, zotero: Zotero.version, features: self.features });
       },
     };
     E["/zotobs/import"] = function () {};
@@ -138,12 +159,84 @@ var ZotobsBridge = {
         catch (e) { self.log("erro: " + e); return self.reply(500, { error: String(e.message || e) }); }
       },
     };
+    E["/zotobs/collection"] = function () {};
+    E["/zotobs/collection"].prototype = {
+      supportedMethods: ["POST"],
+      supportedDataTypes: ["application/json"],
+      permitBookmarklet: false,
+      init: async function (req) {
+        if (!(await self.authorized(req))) return self.reply(403, { error: "token" });
+        try { return await self.doCollection(req.data); }
+        catch (e) { self.log("erro: " + e); return self.reply(500, { error: String(e.message || e) }); }
+      },
+    };
   },
 
   unregister() {
     for (const p of this.endpoints) delete Zotero.Server.Endpoints[p];
   },
 };
+
+// >>> zotobs-collection-op (manter idêntico a JS_CORE em skills/zotero-biblioteca/scripts/zotero_lib.py)
+async function zotobsCollectionOp(req) {
+  const lib = req.library;
+  const library = Zotero.Libraries.get(lib);
+  if (!library) throw new Error("biblioteca " + lib + " não encontrada");
+  if (!library.editable) throw new Error("a biblioteca " + lib + " é somente leitura");
+  const out = { colecao: null, colecoes_criadas: [], adicionados: [], ja_estavam: [], falhas: [] };
+  const live = (k) => {
+    const c = Zotero.Collections.getByLibraryAndKey(lib, k);
+    return c && !c.deleted ? c : null;
+  };
+  let col = null;
+  if (req.collection) {
+    col = live(req.collection);
+    if (!col) throw new Error("coleção " + req.collection + " não encontrada na biblioteca " + lib);
+  } else if (req.create && Array.isArray(req.create.names) && req.create.names.length) {
+    let parent = null;
+    if (req.create.parent) {
+      parent = live(req.create.parent);
+      if (!parent) throw new Error("coleção-mãe " + req.create.parent + " não encontrada na biblioteca " + lib);
+    }
+    for (const raw of req.create.names) {
+      const name = String(raw).trim();
+      if (!name) throw new Error("nome de coleção vazio");
+      const pid = parent ? parent.id : null;
+      let next = Zotero.Collections.getByLibrary(lib, true)
+        .find((c) => (c.parentID || null) === pid && c.name === name);
+      if (!next) {
+        next = new Zotero.Collection();
+        next.libraryID = lib;
+        next.name = name;
+        if (parent) next.parentID = parent.id;
+        await next.saveTx();
+        out.colecoes_criadas.push(next.key);
+      }
+      parent = next;
+    }
+    col = parent;
+  } else {
+    throw new Error("informe 'collection' ou 'create'");
+  }
+  out.colecao = col.key;
+  for (const key of req.items) {
+    try {
+      if (!/^[A-Z0-9]{8}$/.test(key || "")) throw new Error("chave inválida");
+      const it = Zotero.Items.getByLibraryAndKey(lib, key);
+      if (!it || it.deleted) throw new Error("item não encontrado");
+      if (!it.isRegularItem()) throw new Error("não é um item principal (anexo, nota ou anotação)");
+      await it.loadAllData();
+      if (it.inCollection(col.id)) { out.ja_estavam.push(key); continue; }
+      it.addToCollection(col.id);
+      await it.saveTx();
+      out.adicionados.push(key);
+    } catch (e) {
+      out.falhas.push((key || "?") + ": " + e.message);
+    }
+  }
+  return out;
+}
+// <<< zotobs-collection-op
 
 function install() {}
 function uninstall() {}

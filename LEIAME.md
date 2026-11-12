@@ -80,8 +80,9 @@ zotobs sync-md artigo.pdf Vault/artigo.md
 ### Com agente
 
 Dê a qualquer agente que execute comandos de shell as instruções de
-[`skills/zotero-anotacoes/SKILL.md`](skills/zotero-anotacoes/SKILL.md) e peça
-em linguagem natural. O agente só roda os mesmos comandos determinísticos,
+[`skills/zotero-anotacoes/SKILL.md`](skills/zotero-anotacoes/SKILL.md) (anotações) e
+[`skills/zotero-biblioteca/SKILL.md`](skills/zotero-biblioteca/SKILL.md) (biblioteca e
+coleções) e peça em linguagem natural. O agente só roda os mesmos comandos determinísticos,
 então você sempre pode prever (`--dry-run`) e revisar antes de algo chegar ao Zotero.
 
 **5. Perguntar sobre as suas próprias anotações**
@@ -105,6 +106,23 @@ agente adicionou.
 
 Você lê os rascunhos no Obsidian, edita o que quiser e os envia ao Zotero com
 `zotobs sync-md`.
+
+**8. Montar uma subpasta de bibliografia sobre um tema**
+> “Busque na minha biblioteca textos sobre ritmo e pulso, mostre os melhores
+> candidatos e por que cada um entrou e — com a minha aprovação — coloque-os numa
+> nova subcoleção `Ritmo` dentro de `Pesquisa`.”
+
+O agente busca com `zotobs search … --json`, lê os resumos com `zotobs show`, mostra
+uma lista curta, faz a prévia com `zotobs collection add … --dry-run` e, com a sua
+concordância, cria a subcoleção e a preenche. Só trabalha com itens que **já estão na
+biblioteca**, só cria coleções e adiciona itens a elas (nada é removido) e repetir não
+duplica nada. À mão:
+```bash
+zotobs collections --filter pesquisa                  # acha a coleção-mãe (chaves e contagens)
+zotobs search ritmo pulso --not-in /Pesquisa/Ritmo    # o que ainda não está na subpasta
+zotobs collection add Ritmo ABCD1234 EFGH5678 --parent /Pesquisa --create
+```
+Opcionalmente, `--groups mapa.json` (`{"nicho": ["CHAVE", …]}`) divide os itens escolhidos em uma subcoleção por nicho.
 
 ## Comece por aqui
 
@@ -175,6 +193,8 @@ determinística.
 | add nativo pelo plugin / Web API / snippet JS | ✅ testado (Zotero aberto e fechado) |
 | Editar comentário/tags de anotação existente (`sync-md`) | ✅ testado no Zotero 10.0.4 |
 | add embutido no PDF, `embed`, `strip` | ✅ testado |
+| `search`, `show`, `collections`, `libraries` (só leitura) | ✅ testado em banco sintético e numa biblioteca real (Zotero 10.0.9) |
+| `collection create/add` pelo plugin ≥ 0.1.2 ou snippet JS | 🧪 lógica e endpoint do plugin testados com a API do Zotero simulada; falta rodar no Zotero de verdade |
 | Atualização automática do plugin (`updates.json`) | 🧪 pronta, depende de publicar uma release (ver [docs/RELEASE.md](docs/RELEASE.md)) |
 
 ## Licença
@@ -189,7 +209,8 @@ serviço de rede) devem continuar sob a mesma licença, com o código-fonte.
 
 O projeto se chama **zotobs-io**; o CLI/skill ainda usa o nome de origem
 (`zotero_anot.py`, skill `zotero-anotacoes`, pasta de config
-`~/.config/zotero-anot`). O atalho de terminal é `zotobs`.
+`~/.config/zotero-anot`); a parte de biblioteca/coleções é `zotero_lib.py` (skill
+`zotero-biblioteca`). O atalho de terminal é `zotobs`.
 
 ## Testes
 

@@ -105,3 +105,24 @@ anterior em `~/.cache/zotero-anot/backups/`.
 ## Windows / Linux ⚠️ (não testados)
 Se algo falhar, veja o final de [INSTALL.md](INSTALL.md#ajude-a-testar-linux-e-windows)
 para saber o que relatar.
+
+## `collection add`: "o plugin instalado é antigo" / "sem token de pareamento"
+A criação de coleções exige o plugin **zotobs-bridge 0.1.2 ou mais novo** e o token
+(`zotobs bridge-token`). Atualize o `.xpi` (Plugins → engrenagem → *Install Plugin From File…*).
+Enquanto isso, o comando gera o snippet JS: cole em Ferramentas → Developer → Run JavaScript → Run.
+
+## `coleção 'X' é ambígua`
+Há mais de uma coleção com esse nome (comum). Use a chave que o erro lista, ou o caminho a partir
+da raiz com `/` inicial (`/Pesquisa/Ritmo`). `zotobs collections --filter X` mostra todas.
+
+## `a coleção 'X' não existe`
+Falta `--create`. Para criar dentro de uma coleção existente, diga `--parent` (sem ele, um destino
+novo nasce na raiz). Já `--not-in`/`--collection` com uma coleção que não existe acusam "não encontrada"
+(a coleção precisa existir para ser filtro).
+
+## `search`: "índice de texto completo … não encontrado"
+`--in fulltext` lê o `fulltext.sqlite` do Zotero 10+. Em versões anteriores, tire `fulltext` de `--in`.
+
+## A coleção/itens não aparecem no Zotero depois do `collection add`
+Pelo plugin aparecem na hora (se a lista não atualizou, clique em outra coleção e volte). Pelo snippet,
+só depois do **Run**. Para chegarem à nuvem e a outros computadores, use o sync do Zotero.

@@ -1,7 +1,9 @@
 # Uso
 
-`zotobs` = atalho para `skills/zotero-anotacoes/scripts/zotero_anot.py`
-(instalado por `./install.sh`). Sem o atalho:
+`zotobs` = atalho para `skills/zotero-anotacoes/scripts/zotero_anot.py` (anotações)
+e, para `libraries | collections | search | show | collection`, para
+`skills/zotero-biblioteca/scripts/zotero_lib.py` (biblioteca; veja o fim deste arquivo).
+Instalado por `./install.sh`. Sem o atalho:
 `uv run --script skills/zotero-anotacoes/scripts/zotero_anot.py <comando>`.
 
 Opções globais (antes do subcomando): `--zotero-dir` (padrão: lido do
@@ -170,3 +172,85 @@ zotobs bridge-token     # cria o token e diz se o plugin está ativo
 ```
 `add` usa o plugin automaticamente quando ele responde; `--no-plugin` pula
 essa etapa e vai direto para a Web API/snippet.
+
+---
+
+# Biblioteca e coleções (`zotero_lib.py`)
+
+Busca itens por tema e organiza a bibliografia em coleções (subpastas). Só lê o
+banco (numa cópia, com o Zotero aberto ou fechado); escrever é **só** criar
+coleções e adicionar itens a elas, pelo plugin ≥ 0.1.2 ou por um snippet JS.
+Trabalha com itens que **já estão** na biblioteca. Itens são identificados pela
+chave de 8 caracteres (ex.: `PWTUF7PV`). Uma biblioteca por comando: a pessoal por
+padrão, `-L NOME|NÚMERO` para um grupo (veja `libraries`).
+
+## `libraries` e `collections` — onde as coisas estão
+
+```bash
+zotobs libraries                              # pessoal e de grupos (marca as somente leitura)
+zotobs collections                            # árvore inteira, com [chave] e nº de itens
+zotobs collections --filter bibliografia      # só as que têm o texto no nome, com caminho completo
+zotobs collections --depth 1 --json
+```
+Nomes repetidos são comuns. Em qualquer comando, uma coleção pode ser indicada pela
+**chave**, pelo **nome**, por um **caminho** `A/B` (casa o final do caminho) ou por `/A/B`
+(a partir da raiz). Se houver mais de uma candidata, o comando lista as chaves e pede
+que você escolha.
+
+## `search` — buscar por tema
+
+```bash
+zotobs search ritmo pulso                                   # qualquer um dos termos (OR)
+zotobs search ritmo pulso --match all                       # todos os termos
+zotobs search "música eletroacústica" --in all              # inclui notas, anotações e texto completo
+zotobs search ritmo --not-in /Pesquisa/Ritmo --recursive    # o que ainda não está nessa coleção (nem nas subcoleções)
+zotobs search --collection /Pesquisa/Ritmo                  # sem termos: lista o conteúdo
+zotobs search timbre --types book,thesis --year 2000- --tag oficina
+zotobs search ritmo --json                                  # para agentes
+```
+- **Casamento:** sem diferenciar maiúsculas e acentos; o termo vale como **início de palavra**
+  (`ritm` acha ritmo/rítmico/ritmos); `--whole-word` exige a palavra inteira.
+- **Campos (`--in`):** `title`, `abstract`, `tags`, `creators`, `publication`, `notes`,
+  `annotations`, `fulltext` ou `all` (padrão: sem `annotations` e `fulltext`). Cada campo
+  tem um peso (título 5, tags 4, resumo 3, notas/anotações/autores 2, publicação/texto
+  completo 1); o `score` soma os campos em que cada termo casou e só serve para **ordenar**.
+  A linha de cada resultado mostra quais termos casaram em quais campos.
+- **Texto completo** (`fulltext`) usa o índice do próprio Zotero (`fulltext.sqlite`, Zotero 10+);
+  é o campo mais ruidoso: um termo qualquer num livro inteiro conta.
+- **Filtros:** `-c/--collection`, `--not-in` (ambos aceitam `--recursive` para incluir subcoleções),
+  `--tag` (repetível), `--types`, `--year` (`2015`, `2010-2020`, `2010-`, `-2020`), `--limit` (30; `0` = todos).
+- Não entram anexos, notas soltas e itens na lixeira.
+
+## `show` — conferir antes de decidir
+
+```bash
+zotobs show PWTUF7PV NTGREQH2          # resumo, tags, coleções onde já está, anexos/notas/anotações, link zotero://select/…
+```
+
+## `collection create` / `collection add` — organizar
+
+```bash
+zotobs collection create Ritmo --parent /Pesquisa --dry-run   # só cria a subcoleção
+zotobs collection add Ritmo ABCD1234 EFGH5678 --parent /Pesquisa --create --dry-run   # prévia
+zotobs collection add Ritmo ABCD1234 EFGH5678 --parent /Pesquisa --create             # grava
+zotobs search ritmo --json | zotobs collection add /Pesquisa/Ritmo -                  # chaves pela entrada padrão
+```
+- **Opcional — subcoleções por nicho:** `--groups mapa.json`, com `{"nome da subcoleção": ["CHAVE", …]}`,
+  cria cada grupo como subcoleção dentro de DESTINO (`zotobs collection add Tese --groups mapa.json --create`;
+  use `--dry-run` antes). Equivale a um `collection add "Tese/<nome>"` por grupo, é idempotente e não se
+  combina com chaves avulsas. Sem `--groups`, tudo vai para uma coleção só.
+- Chaves podem vir como argumentos ou por `-` (stdin): o JSON de `search --json` ou chaves soltas
+  separadas por espaço, vírgula ou linha.
+- `--create` cria o destino se ele não existir; **`--parent` diz onde** (sem ele, um destino novo nasce
+  na raiz; a prévia mostra onde). Os níveis que faltarem em `A/B/C` também são criados.
+- A prévia marca cada item: `+` adicionar · `=` já está na coleção · `!` problema (não existe nesta
+  biblioteca, está na lixeira ou é anexo/nota). `--strict` não grava nada se houver `!`.
+  Sem `--strict`, grava o que dá e termina com código 1.
+- **Como grava:** pelo plugin `zotobs-bridge` ≥ 0.1.2 (Zotero aberto; vale na hora, sem rede nem chave).
+  Sem plugin, com plugin antigo, sem token ou com o Zotero fechado, o comando diz o motivo e gera um
+  **snippet JS** (`~/.cache/zotero-anot/ultima_colecao.js`, copiado para a área de transferência):
+  Zotero → Ferramentas → Developer → Run JavaScript → colar → Run. `--no-plugin` (ou `--offline`) vai direto ao snippet.
+  A Web API do Zotero **não** é usada aqui (veja [ARCHITECTURE.md](ARCHITECTURE.md)).
+- Idempotente: repetir não duplica nem recria coleção existente de mesmo nome e mesma mãe.
+- Só cria coleções e adiciona itens; **não** remove itens de coleções, não renomeia nem apaga coleções.
+  Bibliotecas de grupo somente leitura recusam a escrita.

@@ -92,7 +92,7 @@ nela pelo terminal (`cd caminho/da/pasta`). Não mova a pasta depois: o comando
 
 **macOS e Linux:**
 ```bash
-./install.sh --all        # comando `zotobs` + skill para os agentes (veja opções abaixo)
+./install.sh --all        # comando `zotobs` + skills para os agentes (veja opções abaixo)
 ```
 Se quiser só o comando, sem as skills dos agentes, rode `mkdir -p ~/.local/bin && ln -sf "$PWD/bin/zotobs" ~/.local/bin/zotobs`.
 
@@ -207,7 +207,7 @@ fechado). Passo a passo em [API-KEY.md](API-KEY.md). **Extrair** anotações
 
 ## 9. Agentes de IA (opcional)
 
-O `install.sh --all` (ou `install.ps1 -Agentes`) liga a skill às pastas lidas por:
+O `install.sh --all` liga as skills (`zotero-anotacoes` e `zotero-biblioteca`) às pastas lidas por:
 
 | Opção | Pasta | Quem lê |
 |---|---|---|

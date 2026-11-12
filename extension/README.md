@@ -1,4 +1,4 @@
-# extension/ — zotobs-bridge (v0.1.1)
+# extension/ — zotobs-bridge (v0.1.2)
 
 Extensão do Zotero 7+ que recebe anotações do CLI em
 `http://127.0.0.1:23119/zotobs/*` e as cria via `Zotero.Annotations.saveFromJSON`
@@ -51,11 +51,19 @@ precisam ser fechadas e reabertas depois de instalar/atualizar.
 
 **Compatibilidade plugin ↔ CLI:** o plugin 0.1.1+ chama o CLI com flags em inglês, então exige o CLI atual (`git pull`). O plugin 0.1.0 funciona com qualquer CLI.
 
+## Coleções (v0.1.2)
+
+`POST /zotobs/collection` cria coleções (subpastas) e adiciona itens a elas; é o que o
+`zotobs collection create/add` usa. O `ping` passa a informar `features` (`annotations`,
+`collections`), e o CLI só usa o endpoint se `collections` estiver na lista. Só cria coleções
+e adiciona itens (idempotente); nada é removido. **Atualizar o plugin não exige atualizar o CLI,
+mas `collection` exige o plugin 0.1.2+.**
+
 ## Segurança
 
 O endpoint exige `X-Zotobs-Token` igual ao arquivo `bridge_token` (lido a cada
 requisição; sem arquivo = tudo negado), recusa requisições com `Origin`,
-aceita no máx. 500 itens e só cria anotações.
+aceita no máx. 500 itens e só cria anotações e coleções e adiciona itens a coleções.
 
 ## Status dos testes
 

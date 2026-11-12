@@ -10,4 +10,4 @@ dependencies = ["pymupdf"]
 dev = ["pytest"]
 
 [tool.pytest.ini_options]
-testpaths = ["skills/zotero-anotacoes/tests"]
+testpaths = ["skills/zotero-anotacoes/tests", "skills/zotero-biblioteca/tests"]

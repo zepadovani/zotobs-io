@@ -1,5 +1,18 @@
 # Changelog
 
+## zotobs-bridge 0.1.2 e CLI — 2026-11-11
+- **Nova skill `zotero-biblioteca`** (`zotero_lib.py`; atalho `zotobs` roteia sozinho): `libraries`,
+  `collections`, `search`, `show` e `collection create/add`. Busca por tema na biblioteca (título,
+  resumo, tags, autores, notas, anotações e texto completo via índice do Zotero 10), sem diferenciar
+  acentos e com pesos por campo; filtros por coleção (`--not-in`), tag, tipo e ano; prévia (`--dry-run`)
+  e criação de subcoleções com os itens escolhidos. Só trabalha com itens já presentes na biblioteca.
+- **Plugin 0.1.2:** endpoint `POST /zotobs/collection` (cria coleções e adiciona itens, idempotente) e
+  `features` no `ping`. **`collection` exige o plugin 0.1.2+**; sem ele, o CLI gera um snippet JS. O CLI
+  continua funcionando com plugins antigos nos demais comandos.
+- `collection add --groups mapa.json` (opcional): uma subcoleção por nicho dentro do destino.
+- `install.sh` instala as duas skills; testes novos (banco sintético, plugin falso e o JS do plugin em
+  `node` com o Zotero simulado).
+
 ## zotobs-bridge 0.1.1 e CLI — 2026-09-30
 - **Plugin 0.1.1:** passa a chamar o CLI com os flags em inglês (`--images`, `--if-exists merge|overwrite`).
   **Ao atualizar o plugin, atualize também o CLI** (`git pull` na pasta do projeto): o CLI antigo não
